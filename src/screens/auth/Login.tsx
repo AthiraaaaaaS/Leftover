@@ -9,8 +9,10 @@ import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { mockApi } from "@/mock/mockApi";
 import { getHomePathFor } from "@/lib/authClient";
 import { Eye, EyeOff, Lock, User2, RotateCcw } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const REMEMBER_KEY = "leftoverlink_remember_username_v1";
+const TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
 
 export default function Login() {
   const nav = useNavigate();
@@ -19,6 +21,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [remember, setRemember] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -29,9 +32,11 @@ export default function Login() {
   }, []);
 
   const canLogin = useMemo(
-    () => username.trim().length >= 3 && password.length >= 4,
-    [username, password]
+    () => username.trim().length >= 3 && password.length >= 4 && !!token,
+    [username, password, token],
   );
+
+  console.log(token);
 
   return (
     <div className="min-h-dvh flex flex-col px-4 ">
@@ -117,6 +122,12 @@ export default function Login() {
                 Forgot password?
               </button>
             </div>
+            <Turnstile
+              siteKey={TURNSTILE_SITE_KEY}
+              onSuccess={(token) => setToken(token)}
+              onError={() => setToken(null)}
+              onExpire={() => setToken(null)}
+            />
 
             {/* error */}
             {err ? (

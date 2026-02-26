@@ -9,9 +9,12 @@ import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { mockApi } from "@/mock/mockApi";
 import { getHomePathFor } from "@/lib/authClient";
 import { HandHeart, UtensilsCrossed, ArrowLeft } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 type Role = "DONOR" | "VOLUNTEER";
 type Step = "ROLE" | "FORM";
+
+const TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
 
 function RoleTile({
   title,
@@ -68,6 +71,7 @@ export default function Signup() {
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   const credentialsOk = useMemo(() => {
     return username.trim().length >= 3 && password.length >= 4;
@@ -95,8 +99,8 @@ export default function Signup() {
             step === "ROLE"
               ? "Choose your role"
               : role === "DONOR"
-              ? "Donor registration"
-              : "Volunteer registration"
+                ? "Donor registration"
+                : "Volunteer registration"
           }
         />
       </div>
@@ -266,13 +270,19 @@ export default function Signup() {
                 {err ? (
                   <div className="text-sm text-destructive">{err}</div>
                 ) : null}
-
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={(token) => setToken(token)}
+                  onError={() => setToken(null)}
+                  onExpire={() => setToken(null)}
+                />
                 <Button
                   className="w-full rounded-xl h-12"
                   disabled={
                     busy ||
                     !role ||
-                    (role === "DONOR" ? !donorOk : !volunteerOk)
+                    (role === "DONOR" ? !donorOk : !volunteerOk) ||
+                    !token
                   }
                   onClick={async () => {
                     if (!role) return;
