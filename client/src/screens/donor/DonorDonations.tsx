@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import type { Donation, DonationStatus } from "@/types";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { DonationCard } from "@/components/donation-cards/DonationCard";
@@ -27,7 +27,7 @@ export default function DonorDonations() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setList(await mockApi.listDonations({ q, status }));
+      setList((await api.listDonations({ q, status })) as Donation[]);
       setLoading(false);
     })();
   }, [q, status]);

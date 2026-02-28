@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 
 export default function DonorSignup() {
   const nav = useNavigate();
@@ -124,7 +124,7 @@ export default function DonorSignup() {
               setErr(null);
               setBusy(true);
               try {
-                await mockApi.auth.registerDonor({
+                await api.auth.registerDonor({
                   username,
                   password,
                   fullName,

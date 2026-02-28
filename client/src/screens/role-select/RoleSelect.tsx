@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HandHeart, PackageOpen, ArrowRight, RotateCcw } from "lucide-react";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import { setRole } from "@/lib/sessions";
 
 export default function RoleSelect() {
@@ -23,7 +23,7 @@ export default function RoleSelect() {
           <Button
             variant="secondary"
             onClick={() => {
-              mockApi.resetDemo();
+              api.resetDemo();
               location.reload();
             }}
           >

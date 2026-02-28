@@ -1,4 +1,5 @@
 // src/App.tsx
+import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "@/app/AppShell";
 
@@ -25,7 +26,7 @@ import {
   isLoggedInSync,
 } from "@/lib/authClient";
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!isLoggedInSync()) return <Navigate to="/auth/login" replace />;
   return children;
 }

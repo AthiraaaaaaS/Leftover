@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Donation } from "@/types";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { HandHeart } from "lucide-react";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
@@ -15,7 +15,7 @@ export default function VolunteerHome() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const data = await mockApi.listDonations({ status: "PENDING" });
+      const data = (await api.listDonations({ status: "PENDING" })) as Donation[];
       setList(data);
       setLoading(false);
     })();

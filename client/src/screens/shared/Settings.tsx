@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { Button } from "@/components/ui/button";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 
 export default function Settings() {
   const nav = useNavigate();
@@ -15,8 +15,8 @@ export default function Settings() {
           variant="secondary"
           className="w-full rounded-xl"
           onClick={() => {
-            mockApi.auth.logout();
-            nav("/auth", { replace: true });
+            api.auth.logout();
+            nav("/auth/login", { replace: true });
           }}
         >
           Logout
@@ -25,8 +25,8 @@ export default function Settings() {
         <Button
           variant="destructive"
           className="w-full rounded-xl"
-          onClick={() => {
-            mockApi.resetDemo();
+          onClick={async () => {
+            await api.resetDemo();
             nav("/", { replace: true });
           }}
         >
@@ -37,8 +37,8 @@ export default function Settings() {
           variant="destructive"
           className="w-full rounded-xl"
           onClick={() => {
-            mockApi.resetDemo();
-            mockApi.auth.resetAuthDemo();
+            api.resetDemo();
+            api.auth.resetAuthDemo();
             nav("/auth", { replace: true });
           }}
         >

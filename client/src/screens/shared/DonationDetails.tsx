@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { Donation } from "@/types";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import { MapPin, Phone, ChevronLeft } from "lucide-react";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { StatusPill } from "@/components/status-pill/StatusPill";
@@ -17,13 +17,13 @@ export default function DonationDetails() {
   useEffect(() => {
     (async () => {
       if (!id) return;
-      setD(await mockApi.getDonation(id));
+      setD((await api.getDonation(id)) as Donation | null);
     })();
   }, [id]);
 
   const totalItems = useMemo(
     () => (d ? d.items.reduce((s, it) => s + it.quantity, 0) : 0),
-    [d]
+    [d],
   );
 
   if (!d) return <div className="text-sm text-muted-foreground">Loading…</div>;

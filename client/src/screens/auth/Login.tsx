@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import { getHomePathFor } from "@/lib/authClient";
+import type { User } from "@/lib/authClient";
 import { Eye, EyeOff, Lock, User2, RotateCcw } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 
@@ -148,11 +149,11 @@ export default function Login() {
                     localStorage.setItem(REMEMBER_KEY, username.trim());
                   else localStorage.removeItem(REMEMBER_KEY);
 
-                  const { user } = await mockApi.auth.login({
+                  const { user } = await api.auth.login({
                     username,
                     password,
                   });
-                  nav(getHomePathFor(user), { replace: true });
+                  nav(getHomePathFor(user as User), { replace: true });
                 } catch (e: any) {
                   setErr(e?.message ?? "Login failed");
                 } finally {
@@ -176,8 +177,8 @@ export default function Login() {
                 variant="ghost"
                 className="w-full rounded-xl text-muted-foreground"
                 onClick={() => {
-                  mockApi.resetDemo();
-                  mockApi.auth.resetAuthDemo();
+                  api.resetDemo();
+                  api.auth.resetAuthDemo();
                   window.location.href = "/auth/login";
                 }}
               >

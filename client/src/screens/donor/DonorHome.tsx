@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import type { Donation } from "@/types";
 
 import { useNavigate } from "react-router-dom";
@@ -16,7 +16,7 @@ export default function DonorHome() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const data = await mockApi.listDonations();
+      const data = (await api.listDonations()) as Donation[];
       setDonations(data);
       setLoading(false);
     })();
@@ -24,7 +24,7 @@ export default function DonorHome() {
 
   const stats = useMemo(() => {
     const active = donations.filter((d) =>
-      ["PENDING", "ASSIGNED", "PICKED_UP"].includes(d.status)
+      ["PENDING", "ASSIGNED", "PICKED_UP"].includes(d.status),
     ).length;
     const delivered = donations.filter((d) => d.status === "DELIVERED").length;
     return { active, delivered };

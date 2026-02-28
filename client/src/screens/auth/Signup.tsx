@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
+import type { User } from "@/lib/authClient";
 import { getHomePathFor } from "@/lib/authClient";
 import { HandHeart, UtensilsCrossed, ArrowLeft } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
@@ -290,7 +291,7 @@ export default function Signup() {
                     setBusy(true);
                     try {
                       if (role === "DONOR") {
-                        await mockApi.auth.registerDonor({
+                        await api.auth.registerDonor({
                           username,
                           password,
                           fullName,
@@ -302,7 +303,7 @@ export default function Signup() {
                           idBackFile,
                         });
                       } else {
-                        await mockApi.auth.registerVolunteer({
+                        await api.auth.registerVolunteer({
                           username,
                           password,
                           fullName,
@@ -313,11 +314,11 @@ export default function Signup() {
                       }
 
                       // auto-login after signup
-                      const { user } = await mockApi.auth.login({
+                      const { user } = await api.auth.login({
                         username,
                         password,
                       });
-                      nav(getHomePathFor(user), { replace: true });
+                      nav(getHomePathFor(user as User), { replace: true });
                     } catch (e: any) {
                       setErr(e?.message ?? "Signup failed");
                     } finally {

@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import type { Donation, Task } from "@/types";
 import { Badge } from "@/components/ui/badge";
 // import { useToast } from "@/components/ui/use-toast";
-import { demoVolunteer } from "@/lib/sessions";
+import { getCurrentUserSync } from "@/lib/authClient";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 
 export default function VolunteerTasks() {
@@ -14,17 +14,19 @@ export default function VolunteerTasks() {
   //   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [donationsById, setDonationsById] = useState<Record<string, Donation>>(
-    {}
+    {},
   );
 
   async function load() {
-    const t = await mockApi.listTasks(demoVolunteer.id);
+    const user = getCurrentUserSync();
+    if (!user || user.role !== "VOLUNTEER") return;
+    const t = (await api.listTasks(user.id)) as Task[];
     setTasks(t);
 
     // load donation details for visible tasks
     const map: Record<string, Donation> = {};
     for (const task of t.slice(0, 10)) {
-      const d = await mockApi.getDonation(task.donationId);
+      const d = (await api.getDonation(task.donationId)) as Donation | null;
       if (d) map[d.id] = d;
     }
     setDonationsById(map);
@@ -36,11 +38,11 @@ export default function VolunteerTasks() {
 
   const active = useMemo(
     () => tasks.filter((t) => t.step !== "DELIVERED"),
-    [tasks]
+    [tasks],
   );
   const done = useMemo(
     () => tasks.filter((t) => t.step === "DELIVERED"),
-    [tasks]
+    [tasks],
   );
 
   return (
@@ -84,7 +86,7 @@ export default function VolunteerTasks() {
                     disabled={t.step === "DELIVERED"}
                     onClick={async () => {
                       try {
-                        await mockApi.advanceTask(t.id);
+                        await api.advanceTask(t.id);
                         // toast({
                         //   title: "Updated",
                         //   description: "Task advanced to next step.",

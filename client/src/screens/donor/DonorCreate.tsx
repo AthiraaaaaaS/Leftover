@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DonationItem, FoodCategory } from "@/types";
-import { mockApi } from "@/mock/mockApi";
+import { api } from "@/lib/api";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { LocationPicker } from "@/components/location-picker/LocationPicker";
-import { demoDonor } from "@/lib/sessions";
+import { getCurrentUserSync } from "@/lib/authClient";
+import { maskPhone } from "@/lib/utils";
 
 const categories: FoodCategory[] = [
   "Cooked Meals",
@@ -43,7 +44,7 @@ export default function DonorCreate() {
   const [category, setCategory] = useState<FoodCategory>("Cooked Meals");
   const [servings, setServings] = useState(20);
   const [notes, setNotes] = useState(
-    "Packed & sealed. Please bring insulated bag."
+    "Packed & sealed. Please bring insulated bag.",
   );
   const [items, setItems] = useState<DonationItem[]>([
     { name: "Veg biryani", quantity: 12, unit: "plates" },
@@ -52,7 +53,7 @@ export default function DonorCreate() {
 
   function updateItem(i: number, patch: Partial<DonationItem>) {
     setItems((prev) =>
-      prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it))
+      prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)),
     );
   }
   function removeItem(i: number) {
@@ -71,7 +72,7 @@ export default function DonorCreate() {
     const d = new Date(Date.now() + 2 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
-      d.getDate()
+      d.getDate(),
     )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
 
@@ -124,7 +125,7 @@ export default function DonorCreate() {
               "Location permission denied — please pick a location on the map.",
           }));
         },
-        { enableHighAccuracy: true, timeout: 8000 }
+        { enableHighAccuracy: true, timeout: 8000 },
       );
     }
 
@@ -137,7 +138,7 @@ export default function DonorCreate() {
   // ---------- Validation ----------
   const foodValid = useMemo(() => {
     const validItems = items.some(
-      (x) => x.name.trim().length > 0 && x.quantity > 0
+      (x) => x.name.trim().length > 0 && x.quantity > 0,
     );
     return validItems && servings > 0;
   }, [items, servings]);
@@ -433,9 +434,14 @@ export default function DonorCreate() {
                 className="rounded-xl flex-1"
                 disabled={!canSubmit}
                 onClick={async () => {
-                  const d = await mockApi.createDonation({
-                    donorName: demoDonor.name,
-                    donorPhoneMasked: demoDonor.phoneMasked,
+                  const user = getCurrentUserSync();
+                  if (!user || user.role !== "DONOR") {
+                    nav("/auth/login");
+                    return;
+                  }
+                  const d = await api.createDonation({
+                    donorName: user.donor.fullName,
+                    donorPhoneMasked: maskPhone(user.donor.phone),
                     pickupBy: new Date(pickupBy).toISOString(),
                     category,
                     servingsEstimate: servings,
@@ -444,7 +450,7 @@ export default function DonorCreate() {
                     notes,
                     dietaryTags: [],
                   });
-                  nav(`/donations/${d.id}`);
+                  nav(`/donations/${(d as { id: string }).id}`);
                 }}
               >
                 Post donation
