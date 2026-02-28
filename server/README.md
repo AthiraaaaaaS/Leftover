@@ -1,21 +1,67 @@
 # LeftoverLink API (FastAPI Backend)
 
-Backend API for the LeftoverLink PWA, implemented with FastAPI, SQLAlchemy (async), and SQLite.
+Backend API for the LeftoverLink PWA, implemented with FastAPI, SQLAlchemy (async), PostgreSQL, and Google Maps.
+
+## Prerequisites
+
+- Python 3.11 or 3.12
+- PostgreSQL 14+ (or use Docker)
+- Google Maps API key (for Geocoding & Places)
 
 ## Setup
 
 ```bash
 cd server
-python -m pip install -r requirements.txt
+python -m venv venv
+source venv/bin/activate   # Linux/Mac
+# venv\Scripts\activate   # Windows CMD
+# source venv/Scripts/activate  # Windows Git Bash
+pip install -r requirements.txt
 ```
+
+### PostgreSQL
+
+**Option A – Docker (recommended):**
+
+```bash
+# From server folder
+docker compose up -d
+
+# Database is ready at localhost:5432
+```
+
+**Option B – Local PostgreSQL:**
+
+```bash
+createdb leftoverlink
+# Or: psql -c "CREATE DATABASE leftoverlink;"
+```
+
+**Option C – SQLite (no PostgreSQL):**
+
+Set in `.env`:
+```
+DATABASE_URL=sqlite+aiosqlite:///./leftoverlink.db
+```
+
+### Environment
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
+```
+
+Required:
+- `DATABASE_URL` – PostgreSQL: `postgresql+asyncpg://user:password@host:5432/leftoverlink`
+- `GOOGLE_MAPS_API_KEY` – For Geocoding & Places (get from [Google Cloud Console](https://console.cloud.google.com/apis/credentials))
 
 ## Run
 
 ```bash
-# From server folder
 python run.py
 
-# Or with uvicorn directly
+# Or
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -23,17 +69,6 @@ API runs at **http://localhost:8000**
 
 - Swagger docs: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
-
-## Environment
-
-Create `.env` in the server folder to override:
-
-```
-DATABASE_URL=sqlite+aiosqlite:///./leftoverlink.db
-SECRET_KEY=your-secret-key
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-DEBUG=false
-```
 
 ## API Endpoints
 
@@ -62,6 +97,16 @@ DEBUG=false
 | PATCH | `/tasks/{id}/advance` | Advance task step |
 | PATCH | `/tasks/{id}/checklist` | Update checklist |
 
+### Google Maps
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/maps/geocode?address=` | Address → lat/lng |
+| GET | `/api/maps/reverse-geocode?lat=&lng=` | lat/lng → address |
+| GET | `/api/maps/places/autocomplete?input=` | Address suggestions |
+| GET | `/api/maps/places/details?place_id=` | Place details (address, lat/lng) |
+
+Requires `GOOGLE_MAPS_API_KEY` in env. Enable Geocoding API and Places API in Google Cloud.
+
 ### Demo
 | Method | Path | Description |
 |--------|------|-------------|
@@ -79,3 +124,15 @@ The API expects **camelCase** in JSON bodies for compatibility with the frontend
 - **Accept pickup**: `{ volunteerId, volunteerName, volunteerPhoneMasked }` or `{ id, name, phoneMasked }`
 
 Responses use camelCase as well (e.g. `donorName`, `createdAt`, `pickupBy`).
+
+## Run tests
+
+```bash
+# Tests use SQLite (DATABASE_URL overridden in conftest) - no PostgreSQL needed
+pytest
+
+# Verbose
+pytest -v
+```
+
+Tests override `DATABASE_URL` to SQLite (`server/test.db`) and cover auth, donations, tasks, maps, and demo reset.

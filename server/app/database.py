@@ -3,11 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
+_engine_kw = {"echo": settings.debug}
+if "postgresql" in settings.database_url:
+    _engine_kw.update(pool_pre_ping=True, pool_size=5, max_overflow=10)
 
-engine = create_async_engine(
-    settings.database_url,
-    echo=settings.debug,
-)
+engine = create_async_engine(settings.database_url, **_engine_kw)
 
 AsyncSessionLocal = async_sessionmaker(
     engine,

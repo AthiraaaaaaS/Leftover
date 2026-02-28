@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, donations, tasks
+from app.routers import auth, donations, tasks, maps
 
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth")
 app.include_router(donations.router)
 app.include_router(tasks.router)
+app.include_router(maps.router)
 
 
 @app.get("/")
