@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# LeftoverLink PWA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Food donation and volunteer pickup coordination app.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS
+- **Backend**: FastAPI, PostgreSQL, SQLAlchemy
+- **Maps**: Google Maps API (Geocoding, Places)
 
-## React Compiler
+## Quick Start (Full Stack Test)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Backend (Terminal 1)
 
-## Expanding the ESLint configuration
+```bash
+cd server
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Start PostgreSQL (Docker)
+docker compose up -d
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# Or use SQLite (no Docker needed)
+# Set in server/.env: DATABASE_URL=sqlite+aiosqlite:///./leftoverlink.db
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# Setup & run
+python -m venv venv
+source venv/Scripts/activate   # Git Bash (Windows)
+# venv\Scripts\activate       # CMD (Windows)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+pip install -r requirements.txt
+python run.py
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Backend: **http://localhost:8000** | Docs: http://localhost:8000/docs
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 2. Frontend (Terminal 2)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd client
+
+# Ensure .env exists with VITE_API_BASE
+echo "VITE_API_BASE=http://localhost:8000" > .env
+
+npm install
+npm run dev
 ```
+
+Frontend: **http://localhost:5173**
+
+### 3. Test Flow
+
+1. Go to http://localhost:5173 → redirected to Login
+2. **Sign up** (donor or volunteer)
+3. **Login** → redirected to donor/volunteer home
+4. **Donor**: Create donation, view donations
+5. **Volunteer**: View pickups, accept pickup, advance task, checklist
+6. Backend serves real data (PostgreSQL or SQLite)
+
+## Project Structure
+
+```
+client/          # React + Vite frontend
+server/          # FastAPI backend
+  app/           # API routes, models, schemas
+  tests/         # pytest integration tests
+```
+
+## Environment
+
+- **server/.env**: `DATABASE_URL`, `GOOGLE_MAPS_API_KEY`, `SECRET_KEY`
+- **client/.env**: `VITE_API_BASE` (required for real API)
+
+See `server/.env.example` and `client/.env.example`.
