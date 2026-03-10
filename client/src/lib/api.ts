@@ -200,9 +200,9 @@ export const api = {
       {
         method: "POST",
         body: JSON.stringify({
-          id: volunteer.id,
-          name: volunteer.name,
-          phoneMasked: volunteer.phoneMasked,
+          volunteerId: volunteer.id,
+          volunteerName: volunteer.name,
+          volunteerPhoneMasked: volunteer.phoneMasked,
         }),
       }
     );

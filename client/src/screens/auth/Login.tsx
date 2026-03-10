@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { api } from "@/lib/api";
 import { getHomePathFor } from "@/lib/authClient";
 import type { User } from "@/lib/authClient";
@@ -40,21 +39,25 @@ export default function Login() {
   console.log(token);
 
   return (
-    <div className="min-h-dvh flex flex-col px-4 ">
-      {/* top */}
-      <div className="pt-4">
-        <GradientHeader title="Leftover Link" subtitle="Login to continue" />
+    <div className="flex min-h-dvh flex-col px-4">
+      {/* Hero header with gradient */}
+      <div className="pt-12 text-center">
+        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-orange-600 text-4xl shadow-lg shadow-primary/30">
+          🥗
+        </div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Leftover Link</h1>
+        <p className="mt-2 text-base text-muted-foreground">Donate food, reduce waste</p>
       </div>
 
-      {/* center */}
-      <div className="flex-1 flex items-center">
-        <Card className="py-0 w-full bg-card/60 border shadow-sm rounded-2xl">
-          <CardContent className="p-5 space-y-4">
+      {/* center - polished card */}
+      <div className="flex flex-1 items-center pb-8">
+        <Card className="w-full overflow-hidden rounded-3xl border-0 bg-white py-0 shadow-xl shadow-black/10">
+          <CardContent className="space-y-5 p-6">
             {/* Title */}
             <div className="space-y-1">
-              <div className="text-xl font-semibold">Welcome back</div>
+              <div className="text-xl font-bold tracking-tight text-foreground">Welcome back</div>
               <div className="text-sm text-muted-foreground">
-                Enter your username and password to access your dashboard.
+                Sign in to access your dashboard.
               </div>
             </div>
 
@@ -139,7 +142,7 @@ export default function Login() {
 
             {/* actions */}
             <Button
-              className="w-full rounded-xl h-12"
+              className="h-12 w-full rounded-xl font-semibold shadow-lg shadow-primary/25"
               disabled={!canLogin || busy}
               onClick={async () => {
                 setErr(null);
@@ -165,8 +168,8 @@ export default function Login() {
             </Button>
 
             <Button
-              variant="secondary"
-              className="w-full rounded-xl h-12"
+              variant="outline"
+              className="h-12 w-full rounded-xl"
               onClick={() => nav("/auth/signup")}
             >
               Create account (Sign up)

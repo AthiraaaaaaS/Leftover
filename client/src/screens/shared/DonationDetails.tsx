@@ -34,19 +34,18 @@ export default function DonationDetails() {
         title={`Donation ${d.id}`}
         subtitle={`${d.category} • ${d.servingsEstimate} servings`}
         right={
-          <Button
-            variant="secondary"
-            className="rounded-xl"
+          <button
             onClick={() => nav(-1)}
+            className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-primary shadow-lg shadow-black/10 transition hover:bg-white/95 active:scale-[0.98]"
           >
-            <ChevronLeft className="mr-2 h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
             Back
-          </Button>
+          </button>
         }
       />
 
-      <Card className="bg-card/60">
-        <CardContent className="p-4 space-y-3">
+      <Card className="rounded-2xl border-0 bg-white shadow-lg shadow-black/5 ring-1 ring-black/5">
+        <CardContent className="space-y-3 p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">Status</div>
             <StatusPill status={d.status} />

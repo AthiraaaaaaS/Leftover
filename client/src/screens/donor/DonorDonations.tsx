@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import type { Donation, DonationStatus } from "@/types";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { DonationCard } from "@/components/donation-cards/DonationCard";
 
@@ -39,27 +38,42 @@ export default function DonorDonations() {
         subtitle="Track pickup status and delivery updates."
       />
 
-      <Input
-        className="rounded-xl"
-        placeholder="Search location, category, status..."
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="h-12 rounded-2xl border-0 bg-white pl-11 shadow-md shadow-black/5 focus-visible:ring-2 focus-visible:ring-primary/30"
+          placeholder="Search location, category..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
 
-      <Tabs value={status} onValueChange={(v: any) => setStatus(v as any)}>
-        <TabsList className="grid grid-cols-3 rounded-xl">
-          <TabsTrigger value="All">All</TabsTrigger>
-          <TabsTrigger value="PENDING">Pending</TabsTrigger>
-          <TabsTrigger value="DELIVERED">Delivered</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap gap-2">
+        {statuses.map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatus(s)}
+            className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-medium shadow-sm transition-all ${
+              status === s
+                ? "bg-primary text-white shadow-md shadow-primary/25"
+                : "bg-white text-secondary-foreground hover:shadow-md"
+            }`}
+          >
+            {s === "All" ? "All" : s.replace("_", " ")}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
       ) : list.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No donations found.</div>
+        <div className="rounded-2xl bg-white p-10 text-center shadow-lg shadow-black/5 ring-1 ring-black/5">
+          <span className="mb-4 block text-6xl">🔍</span>
+          <p className="text-base font-semibold text-foreground">No donations found</p>
+          <p className="mt-2 text-sm text-muted-foreground">Try adjusting your search or filters.</p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {list.map((d) => (
             <DonationCard
               key={d.id}

@@ -4,6 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -45,33 +46,37 @@
 }
 
 :root {
-  /* Swiggy-inspired: warm orange primary, clean neutrals */
+  /* Food-app: warm, inviting palette with depth */
   --radius: 0.75rem;
   --radius-xl: 1rem;
-  --swiggy-orange: #FC8019;
-  --swiggy-orange-dark: #e66d0a;
-  --swiggy-green: #48c479;
-  --background: oklch(0.99 0.002 90);
-  --foreground: oklch(0.2 0.02 30);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 30);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 30);
-  --primary: oklch(0.7 0.15 55);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.01 80);
-  --secondary-foreground: oklch(0.35 0.05 50);
-  --muted: oklch(0.96 0.008 90);
-  --muted-foreground: oklch(0.5 0.02 50);
-  --accent: oklch(0.96 0.03 70);
-  --accent-foreground: oklch(0.35 0.08 55);
-  --destructive: oklch(0.577 0.245 27.325);
-  --success: oklch(0.65 0.18 145);
-  --border: oklch(0.92 0.01 90);
-  --input: oklch(0.94 0.01 90);
-  --ring: oklch(0.7 0.15 55);
-  --chart-1: oklch(0.7 0.15 55);
-  --chart-2: oklch(0.65 0.18 145);
+  --radius-2xl: 1.25rem;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --primary: #FC8019;
+  --primary-hover: #e66d0a;
+  --primary-light: #FFF5ED;
+  --success: #10B981;
+  --success-light: #D1FAE5;
+  --background: #FAFAF9;
+  --background-gradient: linear-gradient(180deg, #FFF7ED 0%, #FAFAF9 40%, #F5F5F4 100%);
+  --foreground: #1C1917;
+  --card: #FFFFFF;
+  --card-foreground: #1C1917;
+  --popover: #FFFFFF;
+  --popover-foreground: #1C1917;
+  --primary-oklch: oklch(0.7 0.15 55);
+  --primary-foreground: #FFFFFF;
+  --secondary: #F5F5F4;
+  --secondary-foreground: #57534E;
+  --muted: #F5F5F4;
+  --muted-foreground: #78716C;
+  --accent: #FEF3C7;
+  --accent-foreground: #92400E;
+  --destructive: #EF4444;
+  --border: #E7E5E4;
+  --input: #E7E5E4;
+  --ring: #FC8019;
+  --chart-1: #FC8019;
+  --chart-2: #10B981;
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
@@ -82,8 +87,9 @@
   --sidebar-accent: oklch(0.96 0.03 70);
   --sidebar-accent-foreground: oklch(0.35 0.08 55);
   --sidebar-border: oklch(0.92 0.01 90);
-  --sidebar-ring: oklch(0.7 0.15 55);
+  --sidebar-ring: #FC8019;
 }
+
 
 .dark {
   --background: oklch(0.145 0 0);
@@ -119,11 +125,23 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Hide scrollbar for category chips */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    @apply bg-background text-foreground antialiased;
+    background: var(--background-gradient);
+    background-attachment: fixed;
   }
 }

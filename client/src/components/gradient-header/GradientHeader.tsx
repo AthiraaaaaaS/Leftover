@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 
+/** Hero-style header with gradient background and polished CTA */
 export function GradientHeader({
   title,
   subtitle,
@@ -12,21 +13,36 @@ export function GradientHeader({
   className?: string;
 }) {
   return (
-    <div
+    <header
       className={cn(
-        "rounded-2xl border bg-gradient-to-br from-white/10 via-white/5 to-transparent p-4 shadow-sm",
+        "relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-[#fd9a3d] to-[#f97316] px-4 py-4 text-white shadow-lg shadow-primary/20",
         className
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-10">
+        <div
+          className="h-full w-full"
+          style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+            backgroundSize: "24px 24px",
+          }}
+        />
+      </div>
+
+      <div className="relative flex items-start justify-between gap-4">
         <div>
-          <div className="text-lg font-semibold tracking-tight">{title}</div>
+          <h1 className="text-xl font-extrabold tracking-tight drop-shadow-sm">
+            {title}
+          </h1>
           {subtitle ? (
-            <div className="text-sm text-muted-foreground">{subtitle}</div>
+            <p className="mt-1 max-w-[240px] text-sm leading-relaxed text-white/90">
+              {subtitle}
+            </p>
           ) : null}
         </div>
         {right}
       </div>
-    </div>
+    </header>
   );
 }
