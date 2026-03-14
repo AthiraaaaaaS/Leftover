@@ -26,6 +26,20 @@ export type Location = {
   lng: number;
 };
 
+export type DeliveryRecipient = {
+  name: string;
+  age?: number;
+  address: string;
+  email?: string;
+  phone?: string;
+};
+
+export type DonationFeedback = {
+  rating: number;
+  comment?: string;
+  submittedAt: string;
+};
+
 export type Donation = {
   id: string;
   donorName: string;
@@ -40,6 +54,8 @@ export type Donation = {
   notes?: string;
   dietaryTags?: string[];
   assignedVolunteer?: { id: string; name: string; phoneMasked: string };
+  deliveryRecipient?: DeliveryRecipient;
+  feedback?: DonationFeedback;
 };
 
 export type TaskStep = "READY" | "STARTED" | "PICKED_UP" | "DELIVERED";
@@ -72,14 +88,11 @@ export type DonorProfile = {
   fullName: string;
   phone: string;
   organization?: string;
-
-  // safer than full Aadhaar
   aadhaarLast4?: string;
   aadhaarConsent: boolean;
-
-  // demo upload fields (store as data URLs in mock)
-  idFrontImage?: string; // base64/dataUrl
-  idBackImage?: string; // base64/dataUrl
+  idFrontImage?: string;
+  idBackImage?: string;
+  foodSafetyCertImage?: string;
 };
 
 export type VolunteerProfile = {
@@ -87,6 +100,10 @@ export type VolunteerProfile = {
   phone: string;
   city?: string;
   hasVehicle?: boolean;
+  aadhaarLast4?: string;
+  aadhaarConsent?: boolean;
+  volunteerIdType?: string;
+  volunteerIdProofImage?: string;
 };
 
 export type User =

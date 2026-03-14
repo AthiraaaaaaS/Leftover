@@ -157,8 +157,17 @@ export default function Login() {
                     password,
                   });
                   nav(getHomePathFor(user as User), { replace: true });
-                } catch (e: any) {
-                  setErr(e?.message ?? "Login failed");
+                } catch (e: unknown) {
+                  const msg = (e as Error)?.message;
+                  if (msg === "pending") {
+                    setErr("Your account is pending approval. You will be notified by email when an admin approves it. Then you can sign in with your credentials.");
+                    return;
+                  }
+                  if (msg === "rejected") {
+                    setErr("Your account was not approved. Please contact support if you believe this is an error.");
+                    return;
+                  }
+                  setErr(msg ?? "Login failed");
                 } finally {
                   setBusy(false);
                 }

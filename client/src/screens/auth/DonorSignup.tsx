@@ -24,12 +24,13 @@ export default function DonorSignup() {
 
   const [idFrontFile, setIdFrontFile] = useState<File | undefined>();
   const [idBackFile, setIdBackFile] = useState<File | undefined>();
+  const [foodSafetyCertFile, setFoodSafetyCertFile] = useState<File | undefined>();
 
   return (
     <div className="space-y-4">
       <GradientHeader
         title="Donor Registration"
-        subtitle="Extra verification fields for donors (demo)"
+        subtitle="Restaurants & hotels: Aadhaar (owner) and food safety certificate required. Admin will verify before approval."
       />
 
       <Card className="bg-card/60">
@@ -69,12 +70,12 @@ export default function DonorSignup() {
             onChange={(e) => setOrganization(e.target.value)}
           />
 
-          <div className="pt-2 text-sm font-medium">
-            Verification (safer demo)
+          <div className="pt-2 text-sm font-medium text-amber-600">
+            Mandatory verification (Admin will approve after checking)
           </div>
           <Input
             className="rounded-xl"
-            placeholder="Aadhaar last 4 digits (optional)"
+            placeholder="Aadhaar last 4 digits (owner) *"
             value={aadhaarLast4}
             onChange={(e) => setAadhaarLast4(e.target.value)}
             inputMode="numeric"
@@ -86,15 +87,13 @@ export default function DonorSignup() {
               onCheckedChange={(v) => setConsent(!!v)}
             />
             <div className="text-sm">
-              I consent to share ID details for verification
+              I consent to share Aadhaar (owner) for verification
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">
-                ID Front (upload)
-              </div>
+              <div className="text-xs text-muted-foreground">Aadhaar front (owner) *</div>
               <Input
                 className="rounded-xl"
                 type="file"
@@ -103,9 +102,7 @@ export default function DonorSignup() {
               />
             </div>
             <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">
-                ID Back (upload)
-              </div>
+              <div className="text-xs text-muted-foreground">Aadhaar back (owner) *</div>
               <Input
                 className="rounded-xl"
                 type="file"
@@ -115,16 +112,36 @@ export default function DonorSignup() {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">Food safety / health certificate *</div>
+            <Input
+              className="rounded-xl"
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setFoodSafetyCertFile(e.target.files?.[0])}
+            />
+          </div>
+
           {err ? <div className="text-sm text-destructive">{err}</div> : null}
 
           <Button
             className="w-full rounded-xl"
-            disabled={busy}
+            disabled={
+              busy ||
+              !username ||
+              !password ||
+              !fullName ||
+              !phone ||
+              !consent ||
+              !idFrontFile ||
+              !idBackFile ||
+              !foodSafetyCertFile
+            }
             onClick={async () => {
               setErr(null);
               setBusy(true);
               try {
-                await api.auth.registerDonor({
+                const result = await api.auth.registerDonor({
                   username,
                   password,
                   fullName,
@@ -134,10 +151,15 @@ export default function DonorSignup() {
                   aadhaarConsent: consent,
                   idFrontFile,
                   idBackFile,
+                  foodSafetyCertFile,
                 });
+                if (typeof result === "object" && result !== null && "pending" in result && result.pending) {
+                  nav("/auth/pending", { state: { message: "Donor account submitted for approval. You will be notified by email when an admin approves it. Then sign in with your credentials." } });
+                  return;
+                }
                 nav("/auth/login");
-              } catch (e: any) {
-                setErr(e?.message ?? "Signup failed");
+              } catch (e: unknown) {
+                setErr((e as Error)?.message ?? "Signup failed");
               } finally {
                 setBusy(false);
               }

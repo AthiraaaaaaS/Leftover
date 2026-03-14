@@ -19,6 +19,8 @@ import Settings from "@/screens/shared/Settings";
 
 import Login from "@/screens/auth/Login";
 import Signup from "@/screens/auth/Signup";
+import PendingApproval from "@/screens/auth/PendingApproval";
+import FeedbackPage from "@/screens/feedback/FeedbackPage";
 
 import {
   getCurrentUserSync,
@@ -48,6 +50,10 @@ export default function App() {
       <Route path="/auth" element={<Navigate to="/auth/login" replace />} />
       <Route path="/auth/login" element={<Login />} />
       <Route path="/auth/signup" element={<Signup />} />
+      <Route path="/auth/pending" element={<PendingApproval />} />
+
+      {/* Public feedback page (link sent to end users by email) */}
+      <Route path="/feedback/:token" element={<FeedbackPage />} />
 
       {/* Protected app */}
       <Route

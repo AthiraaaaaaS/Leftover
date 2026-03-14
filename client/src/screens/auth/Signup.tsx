@@ -65,10 +65,15 @@ export default function Signup() {
   const [consent, setConsent] = useState(false);
   const [idFrontFile, setIdFrontFile] = useState<File | undefined>();
   const [idBackFile, setIdBackFile] = useState<File | undefined>();
+  const [foodSafetyCertFile, setFoodSafetyCertFile] = useState<File | undefined>();
 
   // volunteer-only
   const [city, setCity] = useState("");
   const [hasVehicle, setHasVehicle] = useState(false);
+  const [volAadhaarLast4, setVolAadhaarLast4] = useState("");
+  const [volAadhaarConsent, setVolAadhaarConsent] = useState(false);
+  const [volunteerIdType, setVolunteerIdType] = useState("");
+  const [volunteerIdProofFile, setVolunteerIdProofFile] = useState<File | undefined>();
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -83,13 +88,25 @@ export default function Signup() {
   }, [fullName, phone]);
 
   const donorOk = useMemo(() => {
-    // require consent for donor
-    return credentialsOk && commonOk && consent;
-  }, [credentialsOk, commonOk, consent]);
+    return (
+      credentialsOk &&
+      commonOk &&
+      consent &&
+      !!idFrontFile &&
+      !!idBackFile &&
+      !!foodSafetyCertFile
+    );
+  }, [credentialsOk, commonOk, consent, idFrontFile, idBackFile, foodSafetyCertFile]);
 
   const volunteerOk = useMemo(() => {
-    return credentialsOk && commonOk;
-  }, [credentialsOk, commonOk]);
+    return (
+      credentialsOk &&
+      commonOk &&
+      volAadhaarConsent &&
+      !!volunteerIdType &&
+      !!volunteerIdProofFile
+    );
+  }, [credentialsOk, commonOk, volAadhaarConsent, volunteerIdType, volunteerIdProofFile]);
 
   return (
     <div className="min-h-dvh flex flex-col px-4">
@@ -190,42 +207,30 @@ export default function Signup() {
                 {/* Role-specific */}
                 {role === "DONOR" ? (
                   <>
-                    <div className="text-sm font-medium pt-2">
-                      Donor details
-                    </div>
+                    <div className="text-sm font-medium pt-2">Donor details</div>
                     <Input
                       className="rounded-xl"
                       placeholder="organization (optional)"
                       value={organization}
                       onChange={(e) => setOrganization(e.target.value)}
                     />
-
-                    <div className="text-sm font-medium pt-2">
-                      Verification (demo)
+                    <div className="text-sm font-medium pt-2 text-amber-600">
+                      Mandatory verification (Admin will verify before approval)
                     </div>
                     <Input
                       className="rounded-xl"
-                      placeholder="Aadhaar last 4 digits (optional)"
+                      placeholder="Aadhaar last 4 digits (owner) *"
                       value={aadhaarLast4}
                       onChange={(e) => setAadhaarLast4(e.target.value)}
                       inputMode="numeric"
                     />
-
                     <div className="flex items-center gap-2 rounded-xl border bg-background/20 p-3">
-                      <Checkbox
-                        checked={consent}
-                        onCheckedChange={(v) => setConsent(!!v)}
-                      />
-                      <div className="text-sm">
-                        I consent to share ID details for verification
-                      </div>
+                      <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} />
+                      <div className="text-sm">I consent to share Aadhaar (owner) for verification</div>
                     </div>
-
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <div className="text-xs text-muted-foreground">
-                          ID Front (image)
-                        </div>
+                        <div className="text-xs text-muted-foreground">Aadhaar front (owner) *</div>
                         <Input
                           className="rounded-xl"
                           type="file"
@@ -234,9 +239,7 @@ export default function Signup() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <div className="text-xs text-muted-foreground">
-                          ID Back (image)
-                        </div>
+                        <div className="text-xs text-muted-foreground">Aadhaar back (owner) *</div>
                         <Input
                           className="rounded-xl"
                           type="file"
@@ -245,25 +248,71 @@ export default function Signup() {
                         />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">Food safety / health certificate *</div>
+                      <Input
+                        className="rounded-xl"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => setFoodSafetyCertFile(e.target.files?.[0])}
+                      />
+                    </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-sm font-medium pt-2">
-                      Volunteer details
-                    </div>
+                    <div className="text-sm font-medium pt-2">Volunteer details</div>
                     <Input
                       className="rounded-xl"
                       placeholder="city (optional)"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                     />
-
+                    <div className="flex items-center gap-2 rounded-xl border bg-background/20 p-3">
+                      <Checkbox checked={hasVehicle} onCheckedChange={(v) => setHasVehicle(!!v)} />
+                      <div className="text-sm">I have a vehicle (bike/car)</div>
+                    </div>
+                    <div className="text-sm font-medium pt-2 text-amber-600">
+                      Mandatory verification (Admin will verify before approval)
+                    </div>
+                    <Input
+                      className="rounded-xl"
+                      placeholder="Aadhaar last 4 digits *"
+                      value={volAadhaarLast4}
+                      onChange={(e) => setVolAadhaarLast4(e.target.value)}
+                      inputMode="numeric"
+                    />
                     <div className="flex items-center gap-2 rounded-xl border bg-background/20 p-3">
                       <Checkbox
-                        checked={hasVehicle}
-                        onCheckedChange={(v) => setHasVehicle(!!v)}
+                        checked={volAadhaarConsent}
+                        onCheckedChange={(v) => setVolAadhaarConsent(!!v)}
                       />
-                      <div className="text-sm">I have a vehicle (bike/car)</div>
+                      <div className="text-sm">I consent to share Aadhaar for verification</div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">Volunteer ID type (e.g. DYFI, NSS, NGO) *</div>
+                      <select
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                        value={volunteerIdType}
+                        onChange={(e) => setVolunteerIdType(e.target.value)}
+                      >
+                        <option value="">Select your ID type</option>
+                        <option value="DYFI_MEMBER">DYFI / Party member</option>
+                        <option value="NSS_VOLUNTEER">NSS volunteer</option>
+                        <option value="NGO_COORDINATOR">NGO coordinator</option>
+                        <option value="PARTY_MEMBER">Party member</option>
+                        <option value="OTHER">Other (specify in proof)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">
+                        Proof of volunteer ID (ID card / membership) *
+                      </div>
+                      <Input
+                        className="rounded-xl"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => setVolunteerIdProofFile(e.target.files?.[0])}
+                      />
                     </div>
                   </>
                 )}
@@ -290,8 +339,9 @@ export default function Signup() {
                     setErr(null);
                     setBusy(true);
                     try {
+                      let result: unknown;
                       if (role === "DONOR") {
-                        await api.auth.registerDonor({
+                        result = await api.auth.registerDonor({
                           username,
                           password,
                           fullName,
@@ -301,26 +351,37 @@ export default function Signup() {
                           aadhaarConsent: consent,
                           idFrontFile,
                           idBackFile,
+                          foodSafetyCertFile,
                         });
                       } else {
-                        await api.auth.registerVolunteer({
+                        result = await api.auth.registerVolunteer({
                           username,
                           password,
                           fullName,
                           phone,
                           city: city || undefined,
                           hasVehicle,
+                          aadhaarLast4: volAadhaarLast4 || undefined,
+                          aadhaarConsent: volAadhaarConsent,
+                          volunteerIdType,
+                          volunteerIdProofFile,
                         });
                       }
-
-                      // auto-login after signup
+                      if (typeof result === "object" && result !== null && "pending" in result && (result as { pending?: boolean }).pending) {
+                        nav("/auth/pending", {
+                          state: {
+                            message: "Your account has been submitted for approval. You will be notified by email when an admin approves it. Then sign in with your credentials.",
+                          },
+                        });
+                        return;
+                      }
                       const { user } = await api.auth.login({
                         username,
                         password,
                       });
                       nav(getHomePathFor(user as User), { replace: true });
-                    } catch (e: any) {
-                      setErr(e?.message ?? "Signup failed");
+                    } catch (e: unknown) {
+                      setErr((e as Error)?.message ?? "Signup failed");
                     } finally {
                       setBusy(false);
                     }

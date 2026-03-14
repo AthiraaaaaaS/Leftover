@@ -48,8 +48,8 @@ async def test_get_donation(client):
 
 @pytest.mark.asyncio
 async def test_register_and_login_volunteer(client):
-    """Register volunteer, login, get /auth/me."""
-    # Register
+    """Register volunteer (pending), admin approves, then login and get /auth/me."""
+    # Register -> pending, no token
     r = await client.post(
         "/auth/register/volunteer",
         json={
@@ -61,15 +61,28 @@ async def test_register_and_login_volunteer(client):
     )
     assert r.status_code == 200
     data = r.json()
-    assert "token" in data
+    assert data.get("pending") is True
     assert "user" in data
+    assert data.get("token") is None
     user = data["user"]
     assert user["role"] == "VOLUNTEER"
     assert user["username"] == "testvol"
-    assert "volunteer" in user
-    token = data["token"]
+    assert user.get("status") == "PENDING"
+    user_id = user["id"]
 
-    # Login
+    # Login while pending -> 403
+    r_login_pending = await client.post(
+        "/auth/login",
+        json={"username": "testvol", "password": "test1234"},
+    )
+    assert r_login_pending.status_code == 403
+    assert r_login_pending.json().get("detail") == "pending"
+
+    # Test-only: approve user (Admin API lives in Admin backend)
+    r_approve = await client.post(f"/test/approve-user/{user_id}")
+    assert r_approve.status_code == 200
+
+    # Login after approval
     r2 = await client.post(
         "/auth/login",
         json={"username": "testvol", "password": "test1234"},
@@ -78,6 +91,7 @@ async def test_register_and_login_volunteer(client):
     data2 = r2.json()
     assert "token" in data2
     assert "user" in data2
+    token = data2["token"]
 
     # Me (with token)
     r3 = await client.get(
@@ -92,7 +106,7 @@ async def test_register_and_login_volunteer(client):
 
 @pytest.mark.asyncio
 async def test_register_donor(client):
-    """Register donor with required fields."""
+    """Register donor with required fields; returns pending, no token."""
     r = await client.post(
         "/auth/register/donor",
         json={
@@ -105,10 +119,12 @@ async def test_register_donor(client):
     )
     assert r.status_code == 200
     data = r.json()
-    assert "token" in data
+    assert data.get("pending") is True
+    assert data.get("token") is None
     assert "user" in data
     assert data["user"]["role"] == "DONOR"
     assert data["user"]["username"] == "testdonor"
+    assert data["user"].get("status") == "PENDING"
 
 
 @pytest.mark.asyncio
@@ -287,3 +303,6 @@ async def test_demo_reset(client):
     assert r2.status_code == 200
     # After reset, we should have seed data (3 donations)
     assert len(r2.json()) >= 1
+
+
+# Admin API tests live in Admin/server (separate build).

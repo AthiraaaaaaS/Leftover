@@ -10,6 +10,7 @@ class DonorProfile(BaseModel):
     aadhaar_consent: bool
     id_front_image: str | None = None
     id_back_image: str | None = None
+    food_safety_cert_image: str | None = None
 
 
 class VolunteerProfile(BaseModel):
@@ -17,6 +18,10 @@ class VolunteerProfile(BaseModel):
     phone: str
     city: str | None = None
     has_vehicle: bool = False
+    aadhaar_last4: str | None = None
+    aadhaar_consent: bool = False
+    volunteer_id_type: str | None = None
+    volunteer_id_proof_image: str | None = None
 
 
 class DonorRegisterRequest(BaseModel):
@@ -25,11 +30,13 @@ class DonorRegisterRequest(BaseModel):
     password: str
     full_name: str = Field(..., alias="fullName")
     phone: str
+    email: str | None = Field(None, alias="email")
     organization: str | None = Field(None, alias="organization")
     aadhaar_last4: str | None = Field(None, alias="aadhaarLast4")
     aadhaar_consent: bool = Field(..., alias="aadhaarConsent")
     id_front_image: str | None = Field(None, alias="idFrontImage")
     id_back_image: str | None = Field(None, alias="idBackImage")
+    food_safety_cert_image: str | None = Field(None, alias="foodSafetyCertImage")  # Mandatory: health/food safety certificate
 
 
 class VolunteerRegisterRequest(BaseModel):
@@ -38,8 +45,13 @@ class VolunteerRegisterRequest(BaseModel):
     password: str
     full_name: str = Field(..., alias="fullName")
     phone: str
+    email: str | None = Field(None, alias="email")
     city: str | None = Field(None, alias="city")
     has_vehicle: bool = Field(False, alias="hasVehicle")
+    aadhaar_last4: str | None = Field(None, alias="aadhaarLast4")
+    aadhaar_consent: bool = Field(False, alias="aadhaarConsent")
+    volunteer_id_type: str | None = Field(None, alias="volunteerIdType")  # DYFI_MEMBER, NSS_VOLUNTEER, NGO_COORDINATOR, etc.
+    volunteer_id_proof_image: str | None = Field(None, alias="volunteerIdProofImage")  # Mandatory: proof of volunteer ID
 
 
 class LoginRequest(BaseModel):
@@ -50,6 +62,13 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     token: str
     user: dict
+
+
+class RegisterResponse(BaseModel):
+    """Returned when registration succeeds. If pending=True, no token (admin must approve first)."""
+    user: dict
+    pending: bool = False
+    token: str | None = None
 
 
 class UserResponse(BaseModel):
