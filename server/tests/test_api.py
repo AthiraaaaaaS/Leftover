@@ -57,6 +57,9 @@ async def test_register_and_login_volunteer(client):
             "password": "test1234",
             "fullName": "Test Volunteer",
             "phone": "+44 123 456",
+            "aadhaarConsent": True,
+            "volunteerIdType": "NSS",
+            "volunteerIdProofImage": "data:image/png;base64,AAA",
         },
     )
     assert r.status_code == 200
@@ -115,6 +118,9 @@ async def test_register_donor(client):
             "fullName": "Test Donor",
             "phone": "+44 987 654",
             "aadhaarConsent": True,
+            "idFrontImage": "data:image/png;base64,AAA",
+            "idBackImage": "data:image/png;base64,BBB",
+            "foodSafetyCertImage": "data:image/png;base64,CCC",
         },
     )
     assert r.status_code == 200
@@ -303,6 +309,271 @@ async def test_demo_reset(client):
     assert r2.status_code == 200
     # After reset, we should have seed data (3 donations)
     assert len(r2.json()) >= 1
+
+
+@pytest.mark.asyncio
+async def test_auth_logout(client):
+    """POST /auth/logout returns ok and does not error."""
+    r = await client.post("/auth/logout")
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("ok") is True
+
+
+@pytest.mark.asyncio
+async def test_get_task(client):
+    """GET /tasks/{id} returns a single task when it exists."""
+    # Create a task by accepting a pickup
+    r1 = await client.get("/donations")
+    donations = [d for d in r1.json() if d["status"] == "PENDING"]
+    if not donations:
+        pytest.skip("No PENDING donations")
+    r2 = await client.post(
+        f"/donations/{donations[0]['id']}/accept",
+        json={
+            "id": "V-GETTASK",
+            "name": "Get Task Volunteer",
+            "phoneMasked": "+44 *** *** 333",
+        },
+    )
+    assert r2.status_code == 200
+    task_id = r2.json()["task"]["id"]
+
+    r3 = await client.get(f"/tasks/{task_id}")
+    assert r3.status_code == 200
+    t = r3.json()
+    assert t["id"] == task_id
+    assert t["donationId"] == donations[0]["id"]
+    assert t["volunteerId"] == "V-GETTASK"
+
+
+@pytest.mark.asyncio
+async def test_mark_delivered_and_feedback_flow(client, monkeypatch):
+    """POST /tasks/{id}/deliver then GET/POST /feedback/by-token/{token}."""
+    # Create task in PICKED_UP state
+    r1 = await client.get("/donations")
+    donations = [d for d in r1.json() if d["status"] == "PENDING"]
+    if not donations:
+        pytest.skip("No PENDING donations")
+    r2 = await client.post(
+        f"/donations/{donations[0]['id']}/accept",
+        json={
+            "id": "V-DELIVER",
+            "name": "Deliver Volunteer",
+            "phoneMasked": "+44 *** *** 444",
+        },
+    )
+    assert r2.status_code == 200
+    task = r2.json()["task"]
+
+    # Advance to PICKED_UP
+    r3 = await client.patch(f"/tasks/{task['id']}/advance")
+    assert r3.status_code == 200
+    r4 = await client.patch(f"/tasks/{task['id']}/advance")
+    assert r4.status_code == 200
+    assert r4.json()["step"] == "PICKED_UP"
+
+    # Avoid actually sending email by monkeypatching notification service
+    from app import services
+
+    def _dummy_notify(to_email, volunteer_name, donor_name, feedback_url):
+        return None
+
+    monkeypatch.setattr(
+        services.notification,
+        "send_delivery_notification",
+        _dummy_notify,
+        raising=False,
+    )
+
+    # Mark delivered with end-user details (email so feedback link is sent)
+    r5 = await client.post(
+        f"/tasks/{task['id']}/deliver",
+        json={
+            "endUser": {
+                "name": "Recipient One",
+                "age": 30,
+                "address": "Recipient Address",
+                "email": "recipient@example.com",
+            }
+        },
+    )
+    assert r5.status_code == 200
+    delivered_task = r5.json()
+    assert delivered_task["step"] == "DELIVERED"
+    assert "feedbackUrl" in delivered_task
+    feedback_url = delivered_task["feedbackUrl"]
+    token = feedback_url.rsplit("/", 1)[-1]
+
+    # Public GET /feedback/by-token/{token}
+    r6 = await client.get(f"/feedback/by-token/{token}")
+    assert r6.status_code == 200
+    info = r6.json()
+    assert "donorName" in info
+    assert "volunteerName" in info
+    assert info["alreadySubmitted"] is False
+
+    # Public POST /feedback/by-token/{token}
+    r7 = await client.post(
+        f"/feedback/by-token/{token}",
+        json={"rating": 5, "comment": "Great service"},
+    )
+    assert r7.status_code == 200
+    assert r7.json().get("ok") is True
+
+    # Second submission should fail with 400
+    r8 = await client.post(
+        f"/feedback/by-token/{token}",
+        json={"rating": 4},
+    )
+    assert r8.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_maps_geocode_and_reverse(monkeypatch, client):
+    """GET /api/maps/geocode and /api/maps/reverse-geocode using mocked Google API."""
+    # Ensure API key is considered configured
+    from app import config
+
+    monkeypatch.setattr(config.settings, "google_maps_api_key", "test-key", raising=False)
+
+    import app.routers.maps as maps_router
+
+    class DummyResponse:
+        def __init__(self, json_data):
+            self._json = json_data
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self._json
+
+    async def _fake_get(self, url, params=None, timeout=None):
+        if "geocode" in url and "address" in (params or {}):
+            return DummyResponse(
+                {
+                    "status": "OK",
+                    "results": [
+                        {
+                            "formatted_address": "Test Address",
+                            "place_id": "PLACE1",
+                            "geometry": {"location": {"lat": 10.0, "lng": 20.0}},
+                        }
+                    ],
+                }
+            )
+        if "geocode" in url and "latlng" in (params or {}):
+            return DummyResponse(
+                {
+                    "status": "OK",
+                    "results": [
+                        {
+                            "formatted_address": "Reverse Address",
+                            "place_id": "PLACE2",
+                        }
+                    ],
+                }
+            )
+        return DummyResponse({"status": "ZERO_RESULTS", "results": []})
+
+    class DummyAsyncClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        get = _fake_get
+
+    monkeypatch.setattr(maps_router.httpx, "AsyncClient", DummyAsyncClient, raising=False)
+
+    # Geocode
+    r1 = await client.get("/api/maps/geocode", params={"address": "Somewhere"})
+    assert r1.status_code == 200
+    data1 = r1.json()
+    assert data1["location"]["lat"] == 10.0
+    assert data1["location"]["lng"] == 20.0
+    assert len(data1["results"]) == 1
+
+    # Reverse geocode
+    r2 = await client.get("/api/maps/reverse-geocode", params={"lat": 10.0, "lng": 20.0})
+    assert r2.status_code == 200
+    data2 = r2.json()
+    assert data2["address"] == "Reverse Address"
+
+
+@pytest.mark.asyncio
+async def test_maps_places_autocomplete_and_details(monkeypatch, client):
+    """GET /api/maps/places/autocomplete and /api/maps/places/details using mocked Google API."""
+    from app import config
+    import app.routers.maps as maps_router
+
+    monkeypatch.setattr(config.settings, "google_maps_api_key", "test-key", raising=False)
+
+    class DummyResponse:
+        def __init__(self, json_data):
+            self._json = json_data
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self._json
+
+    async def _fake_get(self, url, params=None, timeout=None):
+        if "place/autocomplete" in url:
+            return DummyResponse(
+                {
+                    "status": "OK",
+                    "predictions": [
+                        {
+                            "place_id": "AUTOPLACE1",
+                            "description": "Auto Place 1",
+                            "structured_formatting": {},
+                        }
+                    ],
+                }
+            )
+        if "place/details" in url:
+            return DummyResponse(
+                {
+                    "status": "OK",
+                    "result": {
+                        "place_id": params.get("place_id"),
+                        "formatted_address": "Details Address",
+                        "geometry": {"location": {"lat": 11.0, "lng": 22.0}},
+                    },
+                }
+            )
+        return DummyResponse({"status": "ZERO_RESULTS", "predictions": []})
+
+    class DummyAsyncClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        get = _fake_get
+
+    monkeypatch.setattr(maps_router.httpx, "AsyncClient", DummyAsyncClient, raising=False)
+
+    # Autocomplete
+    r1 = await client.get("/api/maps/places/autocomplete", params={"input": "Col"})
+    assert r1.status_code == 200
+    auto = r1.json()
+    assert len(auto["predictions"]) == 1
+    place_id = auto["predictions"][0]["place_id"]
+
+    # Details
+    r2 = await client.get("/api/maps/places/details", params={"place_id": place_id})
+    assert r2.status_code == 200
+    details = r2.json()
+    assert details["place_id"] == place_id
+    assert details["formatted_address"] == "Details Address"
+    assert details["location"]["lat"] == 11.0
+    assert details["location"]["lng"] == 22.0
 
 
 # Admin API tests live in Admin/server (separate build).

@@ -54,6 +54,7 @@ export default function Signup() {
   // credentials
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
 
   // shared
   const [fullName, setFullName] = useState("");
@@ -65,7 +66,9 @@ export default function Signup() {
   const [consent, setConsent] = useState(false);
   const [idFrontFile, setIdFrontFile] = useState<File | undefined>();
   const [idBackFile, setIdBackFile] = useState<File | undefined>();
-  const [foodSafetyCertFile, setFoodSafetyCertFile] = useState<File | undefined>();
+  const [foodSafetyCertFile, setFoodSafetyCertFile] = useState<
+    File | undefined
+  >();
 
   // volunteer-only
   const [city, setCity] = useState("");
@@ -73,19 +76,101 @@ export default function Signup() {
   const [volAadhaarLast4, setVolAadhaarLast4] = useState("");
   const [volAadhaarConsent, setVolAadhaarConsent] = useState(false);
   const [volunteerIdType, setVolunteerIdType] = useState("");
-  const [volunteerIdProofFile, setVolunteerIdProofFile] = useState<File | undefined>();
+  const [volunteerIdProofFile, setVolunteerIdProofFile] = useState<
+    File | undefined
+  >();
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
+  const verhoeffD = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
+    [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
+    [3, 4, 0, 1, 2, 8, 9, 5, 6, 7],
+    [4, 0, 1, 2, 3, 9, 5, 6, 7, 8],
+    [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+    [6, 5, 9, 8, 7, 1, 0, 4, 3, 2],
+    [7, 6, 5, 9, 8, 2, 1, 0, 4, 3],
+    [8, 7, 6, 5, 9, 3, 2, 1, 0, 4],
+    [9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+  ];
+
+  const verhoeffP = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [1, 5, 7, 6, 2, 8, 3, 0, 9, 4],
+    [5, 8, 0, 3, 7, 9, 6, 1, 4, 2],
+    [8, 9, 1, 6, 0, 4, 3, 5, 2, 7],
+    [9, 4, 5, 3, 1, 2, 6, 8, 7, 0],
+    [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+    [2, 7, 9, 3, 8, 0, 6, 4, 1, 5],
+    [7, 0, 4, 6, 9, 1, 3, 2, 5, 8],
+  ];
+
+  function isValidAadhaar(aadhaar: string): boolean {
+    if (!/^[2-9][0-9]{11}$/.test(aadhaar)) return false;
+    let c = 0;
+    const inverted = aadhaar
+      .split("")
+      .reverse()
+      .map((n) => parseInt(n, 10));
+    for (let i = 0; i < inverted.length; i++) {
+      c = verhoeffD[c][verhoeffP[i % 8][inverted[i]]];
+    }
+    return c === 0;
+  }
+
+  const passwordError = useMemo(() => {
+    if (!password) return "";
+    if (password.length < 8) return "Password must be at least 8 characters.";
+    if (!/[A-Z]/.test(password))
+      return "Password must include at least one uppercase letter.";
+    if (!/[a-z]/.test(password))
+      return "Password must include at least one lowercase letter.";
+    if (!/[0-9]/.test(password))
+      return "Password must include at least one number.";
+    return "";
+  }, [password]);
+
   const credentialsOk = useMemo(() => {
-    return username.trim().length >= 3 && password.length >= 4;
-  }, [username, password]);
+    if (username.trim().length < 3) return false;
+    if (passwordError) return false;
+    return true;
+  }, [username, passwordError]);
+
+  const phoneError = useMemo(() => {
+    if (!phone) return "";
+    if (!/^\d+$/.test(phone)) return "Phone number must contain only digits.";
+    if (phone.length < 10) return "Phone number must be at least 10 digits.";
+    return "";
+  }, [phone]);
 
   const commonOk = useMemo(() => {
-    return fullName.trim().length >= 2 && phone.trim().length >= 6;
-  }, [fullName, phone]);
+    if (fullName.trim().length < 2) return false;
+    if (phoneError) return false;
+    return true;
+  }, [fullName, phoneError]);
+
+  const emailError = useMemo(() => {
+    if (!email) return "";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email) ? "" : "Enter a valid email address.";
+  }, [email]);
+
+  const donorAadhaarError = useMemo(() => {
+    if (!aadhaarLast4) return "Aadhaar number is required.";
+    if (!/^[2-9]\d{11}$/.test(aadhaarLast4))
+      return "Aadhaar must be 12 digits and cannot start with 0 or 1.";
+    return "";
+  }, [aadhaarLast4]);
+
+  const volunteerAadhaarError = useMemo(() => {
+    if (!volAadhaarLast4) return "Aadhaar number is required.";
+    if (!/^[2-9]\d{11}$/.test(volAadhaarLast4))
+      return "Aadhaar must be 12 digits and cannot start with 0 or 1.";
+    return "";
+  }, [volAadhaarLast4]);
 
   const donorOk = useMemo(() => {
     return (
@@ -94,9 +179,20 @@ export default function Signup() {
       consent &&
       !!idFrontFile &&
       !!idBackFile &&
-      !!foodSafetyCertFile
+      !!foodSafetyCertFile &&
+      !emailError &&
+      !donorAadhaarError
     );
-  }, [credentialsOk, commonOk, consent, idFrontFile, idBackFile, foodSafetyCertFile]);
+  }, [
+    credentialsOk,
+    commonOk,
+    consent,
+    idFrontFile,
+    idBackFile,
+    foodSafetyCertFile,
+    emailError,
+    donorAadhaarError,
+  ]);
 
   const volunteerOk = useMemo(() => {
     return (
@@ -104,9 +200,19 @@ export default function Signup() {
       commonOk &&
       volAadhaarConsent &&
       !!volunteerIdType &&
-      !!volunteerIdProofFile
+      !!volunteerIdProofFile &&
+      !emailError &&
+      !volunteerAadhaarError
     );
-  }, [credentialsOk, commonOk, volAadhaarConsent, volunteerIdType, volunteerIdProofFile]);
+  }, [
+    credentialsOk,
+    commonOk,
+    volAadhaarConsent,
+    volunteerIdType,
+    volunteerIdProofFile,
+    emailError,
+    volunteerAadhaarError,
+  ]);
 
   return (
     <div className="min-h-dvh flex flex-col px-4">
@@ -188,6 +294,21 @@ export default function Signup() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                {passwordError ? (
+                  <div className="text-xs text-destructive">
+                    {passwordError}
+                  </div>
+                ) : null}
+                <Input
+                  className="rounded-xl"
+                  placeholder="email (optional, for updates)"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                {emailError ? (
+                  <div className="text-xs text-destructive">{emailError}</div>
+                ) : null}
 
                 {/* Common */}
                 <div className="text-sm font-medium pt-2">Basic details</div>
@@ -201,13 +322,23 @@ export default function Signup() {
                   className="rounded-xl"
                   placeholder="phone"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  inputMode="numeric"
+                  pattern="\d*"
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value.replace(/\D/g, "");
+                    setPhone(digitsOnly);
+                  }}
                 />
+                {phoneError ? (
+                  <div className="text-xs text-destructive">{phoneError}</div>
+                ) : null}
 
                 {/* Role-specific */}
                 {role === "DONOR" ? (
                   <>
-                    <div className="text-sm font-medium pt-2">Donor details</div>
+                    <div className="text-sm font-medium pt-2">
+                      Donor details
+                    </div>
                     <Input
                       className="rounded-xl"
                       placeholder="organization (optional)"
@@ -219,18 +350,32 @@ export default function Signup() {
                     </div>
                     <Input
                       className="rounded-xl"
-                      placeholder="Aadhaar last 4 digits (owner) *"
+                      placeholder="Aadhaar number (owner) *"
                       value={aadhaarLast4}
-                      onChange={(e) => setAadhaarLast4(e.target.value)}
+                      onChange={(e) =>
+                        setAadhaarLast4(e.target.value.replace(/\D/g, ""))
+                      }
                       inputMode="numeric"
                     />
+                    {donorAadhaarError ? (
+                      <div className="text-xs text-destructive">
+                        {donorAadhaarError}
+                      </div>
+                    ) : null}
                     <div className="flex items-center gap-2 rounded-xl border bg-background/20 p-3">
-                      <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} />
-                      <div className="text-sm">I consent to share Aadhaar (owner) for verification</div>
+                      <Checkbox
+                        checked={consent}
+                        onCheckedChange={(v) => setConsent(!!v)}
+                      />
+                      <div className="text-sm">
+                        I consent to share Aadhaar (owner) for verification
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <div className="text-xs text-muted-foreground">Aadhaar front (owner) *</div>
+                        <div className="text-xs text-muted-foreground">
+                          Aadhaar front (owner) *
+                        </div>
                         <Input
                           className="rounded-xl"
                           type="file"
@@ -239,7 +384,9 @@ export default function Signup() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <div className="text-xs text-muted-foreground">Aadhaar back (owner) *</div>
+                        <div className="text-xs text-muted-foreground">
+                          Aadhaar back (owner) *
+                        </div>
                         <Input
                           className="rounded-xl"
                           type="file"
@@ -249,18 +396,24 @@ export default function Signup() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="text-xs text-muted-foreground">Food safety / health certificate *</div>
+                      <div className="text-xs text-muted-foreground">
+                        Food safety / health certificate *
+                      </div>
                       <Input
                         className="rounded-xl"
                         type="file"
                         accept="image/*,.pdf"
-                        onChange={(e) => setFoodSafetyCertFile(e.target.files?.[0])}
+                        onChange={(e) =>
+                          setFoodSafetyCertFile(e.target.files?.[0])
+                        }
                       />
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-sm font-medium pt-2">Volunteer details</div>
+                    <div className="text-sm font-medium pt-2">
+                      Volunteer details
+                    </div>
                     <Input
                       className="rounded-xl"
                       placeholder="city (optional)"
@@ -268,7 +421,10 @@ export default function Signup() {
                       onChange={(e) => setCity(e.target.value)}
                     />
                     <div className="flex items-center gap-2 rounded-xl border bg-background/20 p-3">
-                      <Checkbox checked={hasVehicle} onCheckedChange={(v) => setHasVehicle(!!v)} />
+                      <Checkbox
+                        checked={hasVehicle}
+                        onCheckedChange={(v) => setHasVehicle(!!v)}
+                      />
                       <div className="text-sm">I have a vehicle (bike/car)</div>
                     </div>
                     <div className="text-sm font-medium pt-2 text-amber-600">
@@ -276,20 +432,31 @@ export default function Signup() {
                     </div>
                     <Input
                       className="rounded-xl"
-                      placeholder="Aadhaar last 4 digits *"
+                      placeholder="Aadhaar number *"
                       value={volAadhaarLast4}
-                      onChange={(e) => setVolAadhaarLast4(e.target.value)}
+                      onChange={(e) =>
+                        setVolAadhaarLast4(e.target.value.replace(/\D/g, ""))
+                      }
                       inputMode="numeric"
                     />
+                    {volunteerAadhaarError ? (
+                      <div className="text-xs text-destructive">
+                        {volunteerAadhaarError}
+                      </div>
+                    ) : null}
                     <div className="flex items-center gap-2 rounded-xl border bg-background/20 p-3">
                       <Checkbox
                         checked={volAadhaarConsent}
                         onCheckedChange={(v) => setVolAadhaarConsent(!!v)}
                       />
-                      <div className="text-sm">I consent to share Aadhaar for verification</div>
+                      <div className="text-sm">
+                        I consent to share Aadhaar for verification
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="text-xs text-muted-foreground">Volunteer ID type (e.g. DYFI, NSS, NGO) *</div>
+                      <div className="text-xs text-muted-foreground">
+                        Volunteer ID type (e.g. DYFI, NSS, NGO) *
+                      </div>
                       <select
                         className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                         value={volunteerIdType}
@@ -311,7 +478,9 @@ export default function Signup() {
                         className="rounded-xl"
                         type="file"
                         accept="image/*,.pdf"
-                        onChange={(e) => setVolunteerIdProofFile(e.target.files?.[0])}
+                        onChange={(e) =>
+                          setVolunteerIdProofFile(e.target.files?.[0])
+                        }
                       />
                     </div>
                   </>
@@ -346,8 +515,11 @@ export default function Signup() {
                           password,
                           fullName,
                           phone,
+                          email: email || undefined,
                           organization: organization || undefined,
-                          aadhaarLast4: aadhaarLast4 || undefined,
+                          aadhaarLast4: aadhaarLast4
+                            ? aadhaarLast4.slice(-4)
+                            : undefined,
                           aadhaarConsent: consent,
                           idFrontFile,
                           idBackFile,
@@ -359,18 +531,27 @@ export default function Signup() {
                           password,
                           fullName,
                           phone,
+                          email: email || undefined,
                           city: city || undefined,
                           hasVehicle,
-                          aadhaarLast4: volAadhaarLast4 || undefined,
+                          aadhaarLast4: volAadhaarLast4
+                            ? volAadhaarLast4.slice(-4)
+                            : undefined,
                           aadhaarConsent: volAadhaarConsent,
                           volunteerIdType,
                           volunteerIdProofFile,
                         });
                       }
-                      if (typeof result === "object" && result !== null && "pending" in result && (result as { pending?: boolean }).pending) {
+                      if (
+                        typeof result === "object" &&
+                        result !== null &&
+                        "pending" in result &&
+                        (result as { pending?: boolean }).pending
+                      ) {
                         nav("/auth/pending", {
                           state: {
-                            message: "Your account has been submitted for approval. You will be notified by email when an admin approves it. Then sign in with your credentials.",
+                            message:
+                              "Your account has been submitted for approval. You will be notified by email when an admin approves it. Then sign in with your credentials.",
                           },
                         });
                         return;

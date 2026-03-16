@@ -128,11 +128,23 @@ Responses use camelCase as well (e.g. `donorName`, `createdAt`, `pickupBy`).
 ## Run tests
 
 ```bash
-# Tests use SQLite (DATABASE_URL overridden in conftest) - no PostgreSQL needed
-pytest
+# From the project root
+cd server
 
-# Verbose
-pytest -v
+# Tests use SQLite (DATABASE_URL overridden in conftest) - no PostgreSQL needed
+pytest          # normal run
+pytest -v       # verbose with individual test names
 ```
 
-Tests override `DATABASE_URL` to SQLite (`server/test.db`) and cover auth, donations, tasks, maps, and demo reset.
+### Test coverage
+
+The `server/tests/test_api.py` module contains async tests that exercise all public API groups:
+
+- **Auth**: `/auth/register/donor`, `/auth/register/volunteer`, `/auth/login`, `/auth/me`, `/auth/logout`, `/auth/reset-demo`
+- **Donations**: `/donations`, `/donations/{id}`, `/donations` (create), `/donations/{id}/accept`
+- **Tasks**: `/tasks?volunteer_id=`, `/tasks/{id}`, `/tasks/{id}/advance`, `/tasks/{id}/checklist`, `/tasks/{id}/deliver`
+- **Feedback**: `/feedback/by-token/{token}` (GET and POST, including duplicate‑submission handling)
+- **Google Maps**: `/api/maps/geocode`, `/api/maps/reverse-geocode`, `/api/maps/places/autocomplete`, `/api/maps/places/details` (external Google calls are mocked in tests)
+- **Demo utilities**: `/demo/reset`
+
+Tests run against a temporary SQLite database file (`server/test.db`) configured in `conftest.py`, so they are fast and do not require PostgreSQL.

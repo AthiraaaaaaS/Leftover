@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { MapPin, Phone, ChevronLeft } from "lucide-react";
 import { GradientHeader } from "@/components/gradient-header/GradientHeader";
 import { StatusPill } from "@/components/status-pill/StatusPill";
+import { getCurrentUserSync, getHomePathFor } from "@/lib/authClient";
 
 export default function DonationDetails() {
   const { id } = useParams();
@@ -35,7 +36,14 @@ export default function DonationDetails() {
         subtitle={`${d.category} • ${d.servingsEstimate} servings`}
         right={
           <button
-            onClick={() => nav(-1)}
+            onClick={() => {
+              const user = getCurrentUserSync();
+              if (user) {
+                nav(getHomePathFor(user));
+              } else {
+                nav("/");
+              }
+            }}
             className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-primary shadow-lg shadow-black/10 transition hover:bg-white/95 active:scale-[0.98]"
           >
             <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />

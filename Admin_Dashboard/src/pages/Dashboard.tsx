@@ -127,7 +127,7 @@ export default function Dashboard() {
     const blob = new Blob([ab], { type: mimeString });
     const url = URL.createObjectURL(blob);
 
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -135,85 +135,140 @@ export default function Dashboard() {
       style={{
         minHeight: "100vh",
         padding: 16,
-        maxWidth: 1024,
-        margin: "0 auto",
         boxSizing: "border-box",
+        background:
+          "radial-gradient(circle at top left, #e0f2fe 0, transparent 55%), radial-gradient(circle at bottom right, #fee2e2 0, transparent 55%), #f3f4f6",
       }}
     >
       <div
         style={{
+          maxWidth: 1120,
+          margin: "0 auto",
+          background: "#ffffff",
+          borderRadius: 16,
+          boxShadow: "0 18px 45px rgba(15,23,42,0.12)",
+          padding: 20,
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-          marginBottom: 24,
+          flexDirection: "column",
+          gap: 24,
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 22 }}>
-          Admin – Pending user requests
-        </h1>
-        <button
-          type="button"
-          onClick={logout}
-          style={{
-            padding: "8px 16px",
-            border: "1px solid #ccc",
-            borderRadius: 999,
-            background: "#fff",
-            cursor: "pointer",
-            fontSize: 14,
-          }}
-        >
-          Logout
-        </button>
-      </div>
-
-      {error && (
+        {/* Top header */}
         <div
           style={{
-            marginBottom: 16,
-            padding: 12,
-            background: "#fef2f2",
-            color: "#b91c1c",
-            borderRadius: 8,
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : pending.length === 0 ? (
-        <p style={{ color: "#666" }}>
-          No pending user requests. New signups will appear here for approval.
-        </p>
-      ) : (
-        <ul
-          style={{
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
             display: "flex",
-            flexDirection: "column",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
             gap: 12,
           }}
         >
-          {pending.map((user) => (
-            <li
-              key={user.id}
+          <div>
+            <h1 style={{ margin: 0, fontSize: 22 }}>Leftover Link · Admin</h1>
+            <p
               style={{
-                padding: 16,
-                background: "#fff",
-                borderRadius: 8,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr)",
-                rowGap: 12,
+                margin: 0,
+                marginTop: 4,
+                fontSize: 13,
+                color: "#6b7280",
               }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
+              Approve trusted donors and volunteers, and track donation quality.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            style={{
+              padding: "8px 16px",
+              border: "1px solid #e5e7eb",
+              borderRadius: 999,
+              background: "#f9fafb",
+              cursor: "pointer",
+              fontSize: 13,
+            }}
+          >
+            Logout
+          </button>
+        </div>
+
+        {/* Pending users area */}
+        <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: 18 }}>Pending approvals</h2>
+              <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
+                Review documents, tick the checklist, then approve or reject.
+              </p>
+            </div>
+            <span
+              style={{
+                fontSize: 12,
+                padding: "2px 10px",
+                borderRadius: 999,
+                background: pending.length ? "#ecfeff" : "#f3f4f6",
+                color: pending.length ? "#0891b2" : "#9ca3af",
+              }}
+            >
+              {pending.length} pending
+            </span>
+          </div>
+
+          {error && (
+            <div
+              style={{
+                padding: 12,
+                background: "#fef2f2",
+                color: "#b91c1c",
+                borderRadius: 8,
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <p style={{ color: "#6b7280", fontSize: 14 }}>
+              Loading pending users…
+            </p>
+          ) : pending.length === 0 ? (
+            <p style={{ color: "#6b7280", fontSize: 14 }}>
+              No pending user requests. New donor and volunteer signups will
+              appear here for approval.
+            </p>
+          ) : (
+            <ul
+              style={{
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {pending.map((user) => (
+                <li
+                  key={user.id}
+                  style={{
+                    padding: 16,
+                    background: "#f9fafb",
+                    borderRadius: 12,
+                    border: "1px solid #e5e7eb",
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr)",
+                    rowGap: 12,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
                 <strong>{user.fullName || user.username}</strong>
                 <span style={{ marginLeft: 8, color: "#666", fontSize: 14 }}>
                   @{user.username} · {user.role}
@@ -448,233 +503,266 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  justifyContent: "flex-end",
-                  width: "100%",
-                  flexWrap: "wrap",
-                }}
-              >
-                {(!verification[user.id]?.aadhaar ||
-                  !verification[user.id]?.certOrId) && (
-                  <span
+                  <div
                     style={{
-                      fontSize: 11,
-                      color: "#b45309",
-                      alignSelf: "center",
-                      marginRight: "auto",
+                      display: "flex",
+                      gap: 8,
+                      justifyContent: "flex-end",
+                      width: "100%",
+                      flexWrap: "wrap",
                     }}
                   >
-                    Tick both verification boxes to enable Approve.
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleApprove(user)}
-                  disabled={actioning === user.id || !isUserVerified(user)}
-                  style={{
-                    padding: "8px 16px",
-                    background:
-                      actioning === user.id || !isUserVerified(user)
-                        ? "#e5e7eb"
-                        : "#0f766e",
-                    color:
-                      actioning === user.id || !isUserVerified(user)
-                        ? "#9ca3af"
-                        : "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor:
-                      actioning === user.id || !isUserVerified(user)
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
-                >
-                  {actioning === user.id
-                    ? "..."
-                    : "Approve (after verification)"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReject(user)}
-                  disabled={actioning === user.id}
-                  style={{
-                    padding: "8px 16px",
-                    background: "#b91c1c",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor: actioning === user.id ? "not-allowed" : "pointer",
-                  }}
-                >
-                  Reject
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+                    {(!verification[user.id]?.aadhaar ||
+                      !verification[user.id]?.certOrId) && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "#b45309",
+                          alignSelf: "center",
+                          marginRight: "auto",
+                        }}
+                      >
+                        Tick both verification boxes to enable Approve.
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(user)}
+                      disabled={actioning === user.id || !isUserVerified(user)}
+                      style={{
+                        padding: "8px 16px",
+                        background:
+                          actioning === user.id || !isUserVerified(user)
+                            ? "#e5e7eb"
+                            : "#0f766e",
+                        color:
+                          actioning === user.id || !isUserVerified(user)
+                            ? "#9ca3af"
+                            : "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        cursor:
+                          actioning === user.id || !isUserVerified(user)
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      {actioning === user.id
+                        ? "..."
+                        : "Approve (after verification)"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReject(user)}
+                      disabled={actioning === user.id}
+                      style={{
+                        padding: "8px 16px",
+                        background: "#b91c1c",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        cursor: actioning === user.id
+                          ? "not-allowed"
+                          : "pointer",
+                      }}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      <p style={{ marginTop: 24, fontSize: 12, color: "#888" }}>
-        Approved users can sign in on the main app. They will be notified by
-        email when approved (when configured).
-      </p>
+        <p style={{ fontSize: 11, color: "#9ca3af" }}>
+          Approved users can sign in on the main app. They will be notified by
+          email when approved (when configured).
+        </p>
 
-      <hr
-        style={{
-          margin: "32px 0",
-          border: "none",
-          borderTop: "1px solid #eee",
-        }}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
-        <div>
-          <h2 style={{ margin: 0, marginBottom: 4, fontSize: 20 }}>
-            Donations & delivery details
-          </h2>
-          <p style={{ fontSize: 14, color: "#666", margin: 0 }}>
-            All donations; delivery/end-user details appear once the volunteer
-            records them. Feedback appears when the recipient submits it
-            (refreshes every 30s or click Refresh).
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => loadDonations()}
-          disabled={donationsLoading}
+        <hr
           style={{
-            padding: "8px 16px",
-            border: "1px solid #0f766e",
-            borderRadius: 8,
-            background: "#fff",
-            color: "#0f766e",
-            cursor: donationsLoading ? "not-allowed" : "pointer",
-            fontWeight: 500,
+            margin: "8px 0 16px",
+            border: "none",
+            borderTop: "1px solid #f3f4f6",
           }}
-        >
-          {donationsLoading ? "Loading…" : "Refresh"}
-        </button>
-      </div>
-      {donationsError && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: 12,
-            background: "#fef2f2",
-            color: "#b91c1c",
-            borderRadius: 8,
-          }}
-        >
-          Donations: {donationsError}
-        </div>
-      )}
-      {donationsLoading ? (
-        <p>Loading donations...</p>
-      ) : donations.length === 0 && !donationsError ? (
-        <p style={{ color: "#666" }}>No donations yet.</p>
-      ) : donations.length === 0 ? null : (
-        <div style={{ overflowX: "auto" }}>
-          <table
+        />
+
+        {/* Donations area */}
+        <section>
+          <div
             style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              background: "#fff",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-              borderRadius: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: 12,
             }}
           >
-            <thead>
-              <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
-                <th
-                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
-                >
-                  Donor
-                </th>
-                <th
-                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
-                >
-                  Volunteer
-                </th>
-                <th
-                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
-                >
-                  Category
-                </th>
-                <th
-                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
-                >
-                  Status
-                </th>
-                <th
-                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
-                >
-                  End user
-                </th>
-                <th
-                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
-                >
-                  Feedback
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {donations.map((d) => (
-                <tr key={d.id} style={{ borderTop: "1px solid #eee" }}>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
-                    {d.donorName}
-                  </td>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
-                    {d.assignedVolunteer?.name ?? "—"}
-                  </td>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
-                    {d.category}
-                  </td>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
-                    {d.status}
-                  </td>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
-                    {d.deliveryRecipient ? (
-                      <span>
-                        {d.deliveryRecipient.name}
-                        {d.deliveryRecipient.email &&
-                          ` · ${d.deliveryRecipient.email}`}
-                        {d.deliveryRecipient.phone &&
-                          !d.deliveryRecipient.email &&
-                          ` · ${d.deliveryRecipient.phone}`}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
-                    {d.feedback ? (
-                      <span>
-                        {d.feedback.rating}/5
-                        {d.feedback.comment &&
-                          ` · "${d.feedback.comment.slice(0, 50)}${d.feedback.comment.length > 50 ? "…" : ""}"`}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            <div>
+              <h2 style={{ margin: 0, fontSize: 18 }}>Donations & feedback</h2>
+              <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
+                All donations; delivery/end-user details appear once volunteers
+                record them. Feedback is collected from end users.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadDonations()}
+              disabled={donationsLoading}
+              style={{
+                padding: "8px 16px",
+                border: "1px solid #0f766e",
+                borderRadius: 999,
+                background: "#fff",
+                color: "#0f766e",
+                cursor: donationsLoading ? "not-allowed" : "pointer",
+                fontWeight: 500,
+                fontSize: 13,
+              }}
+            >
+              {donationsLoading ? "Loading…" : "Refresh"}
+            </button>
+          </div>
+          {donationsError && (
+            <div
+              style={{
+                marginBottom: 12,
+                padding: 12,
+                background: "#fef2f2",
+                color: "#b91c1c",
+                borderRadius: 8,
+              }}
+            >
+              Donations: {donationsError}
+            </div>
+          )}
+          {donationsLoading ? (
+            <p style={{ color: "#6b7280", fontSize: 14 }}>
+              Loading donations…
+            </p>
+          ) : donations.length === 0 && !donationsError ? (
+            <p style={{ color: "#6b7280", fontSize: 14 }}>No donations yet.</p>
+          ) : donations.length === 0 ? null : (
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  background: "#fff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  borderRadius: 8,
+                }}
+              >
+                <thead>
+                  <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
+                    <th
+                      style={{
+                        padding: "12px 10px",
+                        fontSize: 12,
+                        color: "#4b5563",
+                      }}
+                    >
+                      Donor
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px 10px",
+                        fontSize: 12,
+                        color: "#4b5563",
+                      }}
+                    >
+                      Volunteer
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px 10px",
+                        fontSize: 12,
+                        color: "#4b5563",
+                      }}
+                    >
+                      Category
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px 10px",
+                        fontSize: 12,
+                        color: "#4b5563",
+                      }}
+                    >
+                      Status
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px 10px",
+                        fontSize: 12,
+                        color: "#4b5563",
+                      }}
+                    >
+                      End user
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px 10px",
+                        fontSize: 12,
+                        color: "#4b5563",
+                      }}
+                    >
+                      Feedback
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donations.map((d) => (
+                    <tr key={d.id} style={{ borderTop: "1px solid #f3f4f6" }}>
+                      <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                        {d.donorName}
+                      </td>
+                      <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                        {d.assignedVolunteer?.name ?? "—"}
+                      </td>
+                      <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                        {d.category}
+                      </td>
+                      <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                        {d.status}
+                      </td>
+                      <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                        {d.deliveryRecipient ? (
+                          <span>
+                            {d.deliveryRecipient.name}
+                            {d.deliveryRecipient.email &&
+                              ` · ${d.deliveryRecipient.email}`}
+                            {d.deliveryRecipient.phone &&
+                              !d.deliveryRecipient.email &&
+                              ` · ${d.deliveryRecipient.phone}`}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                        {d.feedback ? (
+                          <span>
+                            {d.feedback.rating}/5
+                            {d.feedback.comment &&
+                              ` · "${d.feedback.comment.slice(0, 50)}${
+                                d.feedback.comment.length > 50 ? "…" : ""
+                              }"`}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
