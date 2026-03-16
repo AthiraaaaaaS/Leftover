@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminApi, mainApi, type PendingUser, type DonationWithFeedback } from "@/lib/api";
+import {
+  adminApi,
+  mainApi,
+  type PendingUser,
+  type DonationWithFeedback,
+} from "@/lib/api";
 
 export default function Dashboard() {
   const nav = useNavigate();
@@ -11,6 +16,9 @@ export default function Dashboard() {
   const [donationsError, setDonationsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actioning, setActioning] = useState<string | null>(null);
+  const [verification, setVerification] = useState<
+    Record<string, { aadhaar: boolean; certOrId: boolean }>
+  >({});
 
   const load = async () => {
     setLoading(true);
@@ -33,7 +41,11 @@ export default function Dashboard() {
       setDonations(Array.isArray(list) ? list : []);
     } catch (e) {
       setDonations([]);
-      setDonationsError(e instanceof Error ? e.message : "Failed to load. Ensure main API (port 8000) is running and CORS allows this origin.");
+      setDonationsError(
+        e instanceof Error
+          ? e.message
+          : "Failed to load. Ensure main API (port 8000) is running and CORS allows this origin.",
+      );
     } finally {
       setDonationsLoading(false);
     }
@@ -52,6 +64,25 @@ export default function Dashboard() {
     const interval = setInterval(loadDonations, 30_000);
     return () => clearInterval(interval);
   }, []);
+
+  const toggleVerification = (
+    userId: string,
+    field: "aadhaar" | "certOrId",
+  ) => {
+    setVerification((prev) => {
+      const current = prev[userId] ?? { aadhaar: false, certOrId: false };
+      return {
+        ...prev,
+        [userId]: { ...current, [field]: !current[field] },
+      };
+    });
+  };
+
+  const isUserVerified = (user: PendingUser): boolean => {
+    const v = verification[user.id];
+    if (!v) return false;
+    return v.aadhaar && v.certOrId;
+  };
 
   const handleApprove = async (user: PendingUser) => {
     setActioning(user.id);
@@ -82,21 +113,72 @@ export default function Dashboard() {
     nav("/login", { replace: true });
   };
 
+  const openImage = (base64: any) => {
+    const byteString = atob(base64.split(",")[1]);
+    const mimeString = base64.split(",")[0].split(":")[1].split(";")[0];
+
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+
+    const blob = new Blob([ab], { type: mimeString });
+    const url = URL.createObjectURL(blob);
+
+    window.open(url, "_blank");
+  };
+
   return (
-    <div style={{ minHeight: "100vh", padding: 24, maxWidth: 800, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 24 }}>Admin – Pending user requests</h1>
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: 16,
+        maxWidth: 1024,
+        margin: "0 auto",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: 22 }}>
+          Admin – Pending user requests
+        </h1>
         <button
           type="button"
           onClick={logout}
-          style={{ padding: "8px 16px", border: "1px solid #ccc", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+          style={{
+            padding: "8px 16px",
+            border: "1px solid #ccc",
+            borderRadius: 999,
+            background: "#fff",
+            cursor: "pointer",
+            fontSize: 14,
+          }}
         >
           Logout
         </button>
       </div>
 
       {error && (
-        <div style={{ marginBottom: 16, padding: 12, background: "#fef2f2", color: "#b91c1c", borderRadius: 8 }}>
+        <div
+          style={{
+            marginBottom: 16,
+            padding: 12,
+            background: "#fef2f2",
+            color: "#b91c1c",
+            borderRadius: 8,
+          }}
+        >
           {error}
         </div>
       )}
@@ -104,23 +186,31 @@ export default function Dashboard() {
       {loading ? (
         <p>Loading...</p>
       ) : pending.length === 0 ? (
-        <p style={{ color: "#666" }}>No pending user requests. New signups will appear here for approval.</p>
+        <p style={{ color: "#666" }}>
+          No pending user requests. New signups will appear here for approval.
+        </p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        <ul
+          style={{
+            listStyle: "none",
+            padding: 0,
+            margin: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
           {pending.map((user) => (
             <li
               key={user.id}
               style={{
                 padding: 16,
-                marginBottom: 12,
                 background: "#fff",
                 borderRadius: 8,
                 boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 12,
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr)",
+                rowGap: 12,
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -129,74 +219,282 @@ export default function Dashboard() {
                   @{user.username} · {user.role}
                 </span>
                 {user.phone && (
-                  <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>{user.phone}</div>
+                  <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
+                    {user.phone}
+                  </div>
                 )}
                 {user.email && (
-                  <div style={{ fontSize: 14, color: "#666" }}>{user.email}</div>
+                  <div style={{ fontSize: 14, color: "#666" }}>
+                    {user.email}
+                  </div>
                 )}
                 {user.organization && (
-                  <div style={{ fontSize: 14, color: "#666" }}>Org: {user.organization}</div>
+                  <div style={{ fontSize: 14, color: "#666" }}>
+                    Org: {user.organization}
+                  </div>
                 )}
                 {user.city && (
-                  <div style={{ fontSize: 14, color: "#666" }}>City: {user.city}</div>
+                  <div style={{ fontSize: 14, color: "#666" }}>
+                    City: {user.city}
+                  </div>
                 )}
                 {user.role === "DONOR" && (
                   <div style={{ marginTop: 8, fontSize: 12, color: "#555" }}>
-                    <strong>Verification (verify before approve):</strong> Aadhaar last 4: {user.aadhaarLast4 ?? "—"}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                    <strong>Verification (verify before approve):</strong>{" "}
+                    Aadhaar last 4: {user.aadhaarLast4 ?? "—"}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        marginTop: 4,
+                      }}
+                    >
                       {user.idFrontImage && (
-                        <a href={user.idFrontImage} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>Aadhaar front</a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (user.idFrontImage) openImage(user.idFrontImage);
+                          }}
+                          style={{
+                            fontSize: 12,
+                            border: "none",
+                            padding: 0,
+                            background: "none",
+                            color: "#0f766e",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Aadhaar front
+                        </button>
                       )}
                       {user.idBackImage && (
-                        <a href={user.idBackImage} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>Aadhaar back</a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (user.idBackImage) openImage(user.idBackImage);
+                          }}
+                          style={{
+                            fontSize: 12,
+                            border: "none",
+                            padding: 0,
+                            background: "none",
+                            color: "#0f766e",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Aadhaar back
+                        </button>
                       )}
                       {user.foodSafetyCertImage && (
-                        <a href={user.foodSafetyCertImage} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>Food safety cert</a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (user.foodSafetyCertImage)
+                              openImage(user.foodSafetyCertImage);
+                          }}
+                          style={{
+                            fontSize: 12,
+                            border: "none",
+                            padding: 0,
+                            background: "none",
+                            color: "#0f766e",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Food safety cert
+                        </button>
                       )}
                     </div>
                     <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                       {user.idFrontImage?.startsWith("data:") && (
-                        <img src={user.idFrontImage} alt="Aadhaar front" style={{ maxWidth: 80, maxHeight: 60, objectFit: "contain", border: "1px solid #ddd", borderRadius: 4 }} />
+                        <img
+                          src={user.idFrontImage}
+                          alt="Aadhaar front"
+                          style={{
+                            maxWidth: 80,
+                            maxHeight: 60,
+                            objectFit: "contain",
+                            border: "1px solid #ddd",
+                            borderRadius: 4,
+                          }}
+                        />
                       )}
                       {user.idBackImage?.startsWith("data:") && (
-                        <img src={user.idBackImage} alt="Aadhaar back" style={{ maxWidth: 80, maxHeight: 60, objectFit: "contain", border: "1px solid #ddd", borderRadius: 4 }} />
+                        <img
+                          src={user.idBackImage}
+                          alt="Aadhaar back"
+                          style={{
+                            maxWidth: 80,
+                            maxHeight: 60,
+                            objectFit: "contain",
+                            border: "1px solid #ddd",
+                            borderRadius: 4,
+                          }}
+                        />
                       )}
                       {user.foodSafetyCertImage?.startsWith("data:") && (
-                        <img src={user.foodSafetyCertImage} alt="Food safety cert" style={{ maxWidth: 80, maxHeight: 60, objectFit: "contain", border: "1px solid #ddd", borderRadius: 4 }} />
+                        <img
+                          src={user.foodSafetyCertImage}
+                          alt="Food safety cert"
+                          style={{
+                            maxWidth: 80,
+                            maxHeight: 60,
+                            objectFit: "contain",
+                            border: "1px solid #ddd",
+                            borderRadius: 4,
+                          }}
+                        />
                       )}
                     </div>
                   </div>
                 )}
                 {user.role === "VOLUNTEER" && (
                   <div style={{ marginTop: 8, fontSize: 12, color: "#555" }}>
-                    <strong>Verification (verify before approve):</strong> Aadhaar last 4: {user.aadhaarLast4 ?? "—"} · ID type: {user.volunteerIdType ?? "—"}
+                    <strong>Verification (verify before approve):</strong>{" "}
+                    Aadhaar last 4: {user.aadhaarLast4 ?? "—"} · ID type:{" "}
+                    {user.volunteerIdType ?? "—"}
                     <div style={{ marginTop: 4 }}>
                       {user.volunteerIdProofImage && (
-                        user.volunteerIdProofImage.startsWith("data:") ? (
-                          <img src={user.volunteerIdProofImage} alt="Volunteer ID proof" style={{ maxWidth: 120, maxHeight: 80, objectFit: "contain", border: "1px solid #ddd", borderRadius: 4 }} />
-                        ) : (
-                          <a href={user.volunteerIdProofImage} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>View ID proof</a>
-                        )
+                        <>
+                          {user.volunteerIdProofImage.startsWith("data:") && (
+                            <img
+                              src={user.volunteerIdProofImage}
+                              alt="Volunteer ID proof"
+                              style={{
+                                maxWidth: 120,
+                                maxHeight: 80,
+                                objectFit: "contain",
+                                border: "1px solid #ddd",
+                                borderRadius: 4,
+                              }}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (user.volunteerIdProofImage) {
+                                window.open(
+                                  user.volunteerIdProofImage,
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                );
+                              }
+                            }}
+                            style={{
+                              fontSize: 12,
+                              border: "none",
+                              padding: 0,
+                              background: "none",
+                              color: "#0f766e",
+                              cursor: "pointer",
+                              marginTop: 4,
+                            }}
+                          >
+                            View ID proof
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
                 )}
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: "#444",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!verification[user.id]?.aadhaar}
+                        onChange={() => toggleVerification(user.id, "aadhaar")}
+                      />
+                      <span>Aadhaar / ID details checked</span>
+                    </label>
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!verification[user.id]?.certOrId}
+                        onChange={() => toggleVerification(user.id, "certOrId")}
+                      />
+                      <span>
+                        {user.role === "DONOR"
+                          ? "Food safety certificate checked"
+                          : "Volunteer ID proof checked"}
+                      </span>
+                    </label>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  justifyContent: "flex-end",
+                  width: "100%",
+                  flexWrap: "wrap",
+                }}
+              >
+                {(!verification[user.id]?.aadhaar ||
+                  !verification[user.id]?.certOrId) && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#b45309",
+                      alignSelf: "center",
+                      marginRight: "auto",
+                    }}
+                  >
+                    Tick both verification boxes to enable Approve.
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleApprove(user)}
-                  disabled={actioning === user.id}
+                  disabled={actioning === user.id || !isUserVerified(user)}
                   style={{
                     padding: "8px 16px",
-                    background: "#0f766e",
-                    color: "#fff",
+                    background:
+                      actioning === user.id || !isUserVerified(user)
+                        ? "#e5e7eb"
+                        : "#0f766e",
+                    color:
+                      actioning === user.id || !isUserVerified(user)
+                        ? "#9ca3af"
+                        : "#fff",
                     border: "none",
                     borderRadius: 8,
-                    cursor: actioning === user.id ? "not-allowed" : "pointer",
+                    cursor:
+                      actioning === user.id || !isUserVerified(user)
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                 >
-                  {actioning === user.id ? "..." : "Approve"}
+                  {actioning === user.id
+                    ? "..."
+                    : "Approve (after verification)"}
                 </button>
                 <button
                   type="button"
@@ -220,16 +518,36 @@ export default function Dashboard() {
       )}
 
       <p style={{ marginTop: 24, fontSize: 12, color: "#888" }}>
-        Approved users can sign in on the main app. They will be notified by email when approved (when configured).
+        Approved users can sign in on the main app. They will be notified by
+        email when approved (when configured).
       </p>
 
-      <hr style={{ margin: "32px 0", border: "none", borderTop: "1px solid #eee" }} />
+      <hr
+        style={{
+          margin: "32px 0",
+          border: "none",
+          borderTop: "1px solid #eee",
+        }}
+      />
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
         <div>
-          <h2 style={{ margin: 0, marginBottom: 4, fontSize: 20 }}>Donations & delivery details</h2>
+          <h2 style={{ margin: 0, marginBottom: 4, fontSize: 20 }}>
+            Donations & delivery details
+          </h2>
           <p style={{ fontSize: 14, color: "#666", margin: 0 }}>
-            All donations; delivery/end-user details appear once the volunteer records them. Feedback appears when the recipient submits it (refreshes every 30s or click Refresh).
+            All donations; delivery/end-user details appear once the volunteer
+            records them. Feedback appears when the recipient submits it
+            (refreshes every 30s or click Refresh).
           </p>
         </div>
         <button
@@ -250,7 +568,15 @@ export default function Dashboard() {
         </button>
       </div>
       {donationsError && (
-        <div style={{ marginBottom: 16, padding: 12, background: "#fef2f2", color: "#b91c1c", borderRadius: 8 }}>
+        <div
+          style={{
+            marginBottom: 16,
+            padding: 12,
+            background: "#fef2f2",
+            color: "#b91c1c",
+            borderRadius: 8,
+          }}
+        >
           Donations: {donationsError}
         </div>
       )}
@@ -260,32 +586,73 @@ export default function Dashboard() {
         <p style={{ color: "#666" }}>No donations yet.</p>
       ) : donations.length === 0 ? null : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", borderRadius: 8 }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              background: "#fff",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              borderRadius: 8,
+            }}
+          >
             <thead>
               <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
-                <th style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}>Donor</th>
-                <th style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}>Volunteer</th>
-                <th style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}>Category</th>
-                <th style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}>Status</th>
-                <th style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}>End user</th>
-                <th style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}>Feedback</th>
+                <th
+                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
+                >
+                  Donor
+                </th>
+                <th
+                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
+                >
+                  Volunteer
+                </th>
+                <th
+                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
+                >
+                  Category
+                </th>
+                <th
+                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
+                >
+                  Status
+                </th>
+                <th
+                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
+                >
+                  End user
+                </th>
+                <th
+                  style={{ padding: "12px 10px", fontSize: 12, color: "#555" }}
+                >
+                  Feedback
+                </th>
               </tr>
             </thead>
             <tbody>
               {donations.map((d) => (
                 <tr key={d.id} style={{ borderTop: "1px solid #eee" }}>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>{d.donorName}</td>
+                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                    {d.donorName}
+                  </td>
                   <td style={{ padding: "12px 10px", fontSize: 14 }}>
                     {d.assignedVolunteer?.name ?? "—"}
                   </td>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>{d.category}</td>
-                  <td style={{ padding: "12px 10px", fontSize: 14 }}>{d.status}</td>
+                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                    {d.category}
+                  </td>
+                  <td style={{ padding: "12px 10px", fontSize: 14 }}>
+                    {d.status}
+                  </td>
                   <td style={{ padding: "12px 10px", fontSize: 14 }}>
                     {d.deliveryRecipient ? (
                       <span>
                         {d.deliveryRecipient.name}
-                        {d.deliveryRecipient.email && ` · ${d.deliveryRecipient.email}`}
-                        {d.deliveryRecipient.phone && !d.deliveryRecipient.email && ` · ${d.deliveryRecipient.phone}`}
+                        {d.deliveryRecipient.email &&
+                          ` · ${d.deliveryRecipient.email}`}
+                        {d.deliveryRecipient.phone &&
+                          !d.deliveryRecipient.email &&
+                          ` · ${d.deliveryRecipient.phone}`}
                       </span>
                     ) : (
                       "—"
@@ -295,7 +662,8 @@ export default function Dashboard() {
                     {d.feedback ? (
                       <span>
                         {d.feedback.rating}/5
-                        {d.feedback.comment && ` · "${d.feedback.comment.slice(0, 50)}${d.feedback.comment.length > 50 ? "…" : ""}"`}
+                        {d.feedback.comment &&
+                          ` · "${d.feedback.comment.slice(0, 50)}${d.feedback.comment.length > 50 ? "…" : ""}"`}
                       </span>
                     ) : (
                       "—"
