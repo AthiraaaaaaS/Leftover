@@ -15,7 +15,8 @@ import { Turnstile } from "@marsidev/react-turnstile";
 type Role = "DONOR" | "VOLUNTEER";
 type Step = "ROLE" | "FORM";
 
-const TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
+const TURNSTILE_SITE_KEY =
+  import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
 
 function RoleTile({
   title,

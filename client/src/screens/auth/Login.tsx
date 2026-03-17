@@ -12,7 +12,8 @@ import { Eye, EyeOff, Lock, User2, RotateCcw } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 const REMEMBER_KEY = "leftoverlink_remember_username_v1";
-const TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
+const TURNSTILE_SITE_KEY =
+  import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
 
 export default function Login() {
   const nav = useNavigate();
@@ -45,8 +46,12 @@ export default function Login() {
         <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-orange-600 text-4xl shadow-lg shadow-primary/30">
           🥗
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Leftover Link</h1>
-        <p className="mt-2 text-base text-muted-foreground">Donate food, reduce waste</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+          Leftover Link
+        </h1>
+        <p className="mt-2 text-base text-muted-foreground">
+          Donate food, reduce waste
+        </p>
       </div>
 
       {/* center - polished card */}
@@ -55,7 +60,9 @@ export default function Login() {
           <CardContent className="space-y-5 p-6">
             {/* Title */}
             <div className="space-y-1">
-              <div className="text-xl font-bold tracking-tight text-foreground">Welcome back</div>
+              <div className="text-xl font-bold tracking-tight text-foreground">
+                Welcome back
+              </div>
               <div className="text-sm text-muted-foreground">
                 Sign in to access your dashboard.
               </div>
@@ -160,11 +167,15 @@ export default function Login() {
                 } catch (e: unknown) {
                   const msg = (e as Error)?.message;
                   if (msg === "pending") {
-                    setErr("Your account is pending approval. You will be notified by email when an admin approves it. Then you can sign in with your credentials.");
+                    setErr(
+                      "Your account is pending approval. You will be notified by email when an admin approves it. Then you can sign in with your credentials.",
+                    );
                     return;
                   }
                   if (msg === "rejected") {
-                    setErr("Your account was not approved. Please contact support if you believe this is an error.");
+                    setErr(
+                      "Your account was not approved. Please contact support if you believe this is an error.",
+                    );
                     return;
                   }
                   setErr(msg ?? "Login failed");
