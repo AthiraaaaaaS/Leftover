@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import type { Donation } from "@/types";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
@@ -35,33 +36,42 @@ export default function VolunteerPickups() {
         subtitle="Only Pending donations show here (demo)."
       />
 
-      <Input
-        className="rounded-xl"
-        placeholder="Search area/category..."
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="h-12 rounded-2xl border-0 bg-white pl-11 shadow-md shadow-black/5 focus-visible:ring-2 focus-visible:ring-primary/30"
+          placeholder="Search area or category..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
+      </div>
 
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
       ) : list.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No pickups found.</div>
+        <div className="rounded-2xl bg-white p-10 text-center shadow-lg shadow-black/5 ring-1 ring-black/5">
+          <span className="mb-4 block text-6xl">🔍</span>
+          <p className="text-base font-semibold text-foreground">No pickups found</p>
+          <p className="mt-2 text-sm text-muted-foreground">Try a different search.</p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {list.map((d) => (
             <div key={d.id} className="space-y-2">
               <DonationCard d={d} onClick={() => nav(`/donations/${d.id}`)} />
               <Button
-                variant="secondary"
-                className="w-full rounded-xl"
+                className="w-full rounded-xl font-semibold shadow-lg shadow-primary/20"
                 onClick={async () => {
                   try {
                     const user = getCurrentUserSync();
                     if (!user || user.role !== "VOLUNTEER") return;
+                    const vol = user.volunteer as { fullName?: string; full_name?: string; phone?: string };
+                    const volName = vol?.fullName ?? vol?.full_name ?? user.username;
+                    const volPhone = vol?.phone ?? "";
                     await api.acceptPickup(d.id, {
                       id: user.id,
-                      name: user.volunteer.fullName,
-                      phoneMasked: maskPhone(user.volunteer.phone),
+                      name: volName,
+                      phoneMasked: maskPhone(volPhone),
                     });
                     // toast({
                     //   title: "Pickup accepted",

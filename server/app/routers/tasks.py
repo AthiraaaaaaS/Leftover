@@ -1,17 +1,21 @@
 """Tasks API routes for volunteer pickup workflow."""
 import random
+import uuid
 from datetime import datetime
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_current_user_optional
+from app.config import settings
 from app.database import get_db
 from app.models.donation import Donation
+from app.models.delivery import DeliveryRecipient, Feedback as FeedbackModel
 from app.models.task import Task
-from app.schemas.task import TaskChecklistPatch
+from app.schemas.task import TaskChecklistPatch, DeliverRequest
+from app.services.notification import send_delivery_notification
 
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -68,16 +72,21 @@ async def advance_task(
     task_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Advance task step: READY -> STARTED -> PICKED_UP -> DELIVERED."""
+    """Advance task step: READY -> STARTED -> PICKED_UP. Use POST /tasks/{id}/deliver to mark DELIVERED with end-user details."""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(404, "Task not found")
 
+    if task.step == "PICKED_UP":
+        raise HTTPException(
+            400,
+            "Use POST /tasks/{task_id}/deliver with endUser (name, address, email, phone) to mark as delivered.",
+        )
+
     next_step = {
         "READY": "STARTED",
         "STARTED": "PICKED_UP",
-        "PICKED_UP": "DELIVERED",
     }.get(task.step)
     if not next_step:
         raise HTTPException(400, "Task already completed")
@@ -91,11 +100,69 @@ async def advance_task(
         donation.status = {
             "STARTED": "ASSIGNED",
             "PICKED_UP": "PICKED_UP",
-            "DELIVERED": "DELIVERED",
         }.get(next_step, donation.status)
 
     await db.flush()
     return _task_to_response(task)
+
+
+@router.post("/{task_id}/deliver")
+async def mark_delivered(
+    task_id: str,
+    body: DeliverRequest,
+    background_tasks: BackgroundTasks,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Mark task as delivered and record end-user details. Sends email with feedback link to recipient."""
+    result = await db.execute(select(Task).where(Task.id == task_id))
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(404, "Task not found")
+    if task.step != "PICKED_UP":
+        raise HTTPException(400, "Task must be in PICKED_UP step before marking delivered")
+
+    eu = body.endUser
+    if not eu.email and not eu.phone:
+        raise HTTPException(400, "End user email or phone is required to send feedback link")
+
+    feedback_token = str(uuid.uuid4()).replace("-", "")[:32]
+    recipient = DeliveryRecipient(
+        id=f"DR-{random.randint(1000, 9999)}",
+        task_id=task.id,
+        name=eu.name,
+        age=eu.age,
+        address=eu.address,
+        email=eu.email or None,
+        phone=eu.phone or None,
+        feedback_token=feedback_token,
+    )
+    db.add(recipient)
+    task.step = "DELIVERED"
+    task.updated_at = datetime.utcnow()
+
+    donation_result = await db.execute(select(Donation).where(Donation.id == task.donation_id))
+    donation = donation_result.scalar_one_or_none()
+    if donation:
+        donation.status = "DELIVERED"
+
+    await db.flush()
+
+    volunteer_name = (donation.assigned_volunteer_data or {}).get("name", "Volunteer") if donation else "Volunteer"
+    donor_name = donation.donor_name if donation else "Donor"
+    feedback_url = f"{settings.client_base_url.rstrip('/')}/feedback/{feedback_token}"
+
+    if eu.email:
+        background_tasks.add_task(
+            send_delivery_notification,
+            eu.email,
+            volunteer_name,
+            donor_name,
+            feedback_url,
+        )
+
+    response = _task_to_response(task)
+    response["feedbackUrl"] = feedback_url
+    return response
 
 
 @router.patch("/{task_id}/checklist")

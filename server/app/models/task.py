@@ -1,4 +1,5 @@
 """Task model for volunteer pickup workflow."""
+from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import String, DateTime, Boolean, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,3 +21,9 @@ class Task(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     donation: Mapped["Donation"] = relationship("Donation", back_populates="tasks", foreign_keys=[donation_id])
+    delivery_recipient: Mapped["DeliveryRecipient | None"] = relationship(
+        "DeliveryRecipient", back_populates="task", uselist=False
+    )
+    feedback: Mapped["Feedback | None"] = relationship(
+        "Feedback", back_populates="task", uselist=False
+    )

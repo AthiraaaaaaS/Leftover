@@ -439,9 +439,12 @@ export default function DonorCreate() {
                     nav("/auth/login");
                     return;
                   }
+                  const donor = user.donor as { fullName?: string; full_name?: string; phone?: string } | undefined;
+                  const donorName = donor?.fullName ?? donor?.full_name ?? user.username ?? "Donor";
+                  const donorPhone = donor?.phone ?? "";
                   const d = await api.createDonation({
-                    donorName: user.donor.fullName,
-                    donorPhoneMasked: maskPhone(user.donor.phone),
+                    donorName,
+                    donorPhoneMasked: maskPhone(donorPhone),
                     pickupBy: new Date(pickupBy).toISOString(),
                     category,
                     servingsEstimate: servings,

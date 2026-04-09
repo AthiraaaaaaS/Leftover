@@ -1,12 +1,18 @@
 """FastAPI application entrypoint."""
+import logging
+import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, donations, tasks, maps
+from app.routers import auth, donations, tasks, maps, feedback
+from app.routers import test_routes
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -24,6 +30,7 @@ async def lifespan(app: FastAPI):
         if count == 0:
             await seed_demo_data(session)
             await session.commit()
+
     yield
 
 
@@ -34,9 +41,31 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log 500s and return a safe message (detail only when debug)."""
+    logger.exception("Unhandled exception: %s", exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc) if settings.debug else "Internal server error. Check server logs.",
+        },
+    )
+
+
+# CORS: main app origins + Admin app (built/deployed separately; set ADMIN_CORS_ORIGINS in production)
+_cors_list = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+# Local dev: allow Admin on 5174; production: add ADMIN_CORS_ORIGINS e.g. https://admin.yourdomain.com
+_admin_origins = ["http://localhost:5174", "http://127.0.0.1:5174"]
+if settings.admin_cors_origins:
+    _admin_origins.extend(o.strip() for o in settings.admin_cors_origins.split(",") if o.strip())
+for origin in _admin_origins:
+    if origin and origin not in _cors_list:
+        _cors_list.append(origin)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),
+    allow_origins=_cors_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,7 +74,10 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth")
 app.include_router(donations.router)
 app.include_router(tasks.router)
+app.include_router(feedback.router)
 app.include_router(maps.router)
+if os.getenv("TESTING"):
+    app.include_router(test_routes.router)
 
 
 @app.get("/")
@@ -58,11 +90,14 @@ async def root():
 async def reset_demo():
     """Reset demo data. In development only; clears and reseeds donations and tasks."""
     from app.models import Donation, Task
+    from app.models.delivery import Feedback, DeliveryRecipient
     from sqlalchemy import delete
     from app.database import AsyncSessionLocal
     from app.seed import seed_demo_data
 
     async with AsyncSessionLocal() as session:
+        await session.execute(delete(Feedback))
+        await session.execute(delete(DeliveryRecipient))
         await session.execute(delete(Task))
         await session.execute(delete(Donation))
         await session.commit()

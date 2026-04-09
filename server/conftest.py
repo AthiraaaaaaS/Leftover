@@ -5,6 +5,7 @@ import os
 # Use a temp file DB so all connections share the same database
 _test_db = os.path.join(os.path.dirname(__file__), "test.db")
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_test_db}"
+os.environ["TESTING"] = "1"
 
 import pytest
 from httpx import ASGITransport, AsyncClient

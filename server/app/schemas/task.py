@@ -31,6 +31,22 @@ class AcceptPickupRequest(BaseModel):
     phoneMasked: str | None = Field(None, alias="phoneMasked")
 
 
+class EndUserCreate(BaseModel):
+    """End user (recipient) details when volunteer marks delivery."""
+    model_config = ConfigDict(populate_by_name=True)
+    name: str
+    age: Optional[int] = Field(None, ge=0, le=150)
+    address: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class DeliverRequest(BaseModel):
+    """Request body for marking task as delivered with end-user details."""
+    model_config = ConfigDict(populate_by_name=True)
+    endUser: EndUserCreate = Field(..., alias="endUser")
+
+
 class TaskResponse(BaseModel):
     id: str
     donationId: str

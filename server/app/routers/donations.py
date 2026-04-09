@@ -7,24 +7,55 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy.orm import selectinload
+
 from app.auth.deps import get_current_user, get_current_user_optional, get_current_donor
 from app.database import get_db
 from app.models.donation import Donation
+from app.models.task import Task
 from app.models.user import User
-from app.schemas.donation import DonationCreate, DonationResponse, DonationItem, Location, AssignedVolunteer
+from app.schemas.donation import (
+    DonationCreate,
+    DonationResponse,
+    DonationItem,
+    Location,
+    AssignedVolunteer,
+    DeliveryRecipientResponse,
+    FeedbackResponse,
+)
 from app.schemas.task import AcceptPickupRequest
 
 
 router = APIRouter(prefix="/donations", tags=["donations"])
 
 
-def _donation_to_response(d: Donation) -> dict:
-    """Convert Donation model to frontend Donation shape."""
+def _donation_to_response(
+    d: Donation,
+    delivery_recipient=None,
+    feedback=None,
+) -> dict:
+    """Convert Donation model to frontend Donation shape. Optionally include delivery recipient and feedback."""
     pickup_location = d.pickup_location if isinstance(d.pickup_location, dict) else {}
     items = d.items if isinstance(d.items, list) else []
     dietary_tags = d.dietary_tags if isinstance(d.dietary_tags, list) else (d.dietary_tags or [])
     pickup_by_val = d.pickup_by
     pickup_by_str = pickup_by_val.isoformat() if hasattr(pickup_by_val, "isoformat") else str(pickup_by_val)
+    dr = None
+    if delivery_recipient:
+        dr = DeliveryRecipientResponse(
+            name=delivery_recipient.name,
+            age=delivery_recipient.age,
+            address=delivery_recipient.address,
+            email=delivery_recipient.email,
+            phone=delivery_recipient.phone,
+        )
+    fb = None
+    if feedback:
+        fb = FeedbackResponse(
+            rating=feedback.rating,
+            comment=feedback.comment,
+            submittedAt=feedback.submitted_at.isoformat() if feedback.submitted_at else "",
+        )
     return DonationResponse(
         id=d.id,
         donorName=d.donor_name,
@@ -39,11 +70,21 @@ def _donation_to_response(d: Donation) -> dict:
         notes=d.notes,
         dietaryTags=dietary_tags,
         assignedVolunteer=AssignedVolunteer(**d.assigned_volunteer_data) if d.assigned_volunteer_data else None,
+        deliveryRecipient=dr,
+        feedback=fb,
     ).model_dump()
 
 
 def _generate_donation_id() -> str:
     return f"D-{random.randint(1000, 9999)}"
+
+
+def _get_delivery_and_feedback(donation: Donation):
+    """Get first delivery recipient and feedback from donation's tasks."""
+    for t in getattr(donation, "tasks", []) or []:
+        if getattr(t, "delivery_recipient", None):
+            return t.delivery_recipient, getattr(t, "feedback", None)
+    return None, None
 
 
 @router.get("", response_model=list)
@@ -53,8 +94,15 @@ async def list_donations(
     category: Optional[str] = Query(None, description="Filter by category"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ):
-    """List donations with optional filters."""
-    stmt = select(Donation).order_by(Donation.pickup_by.asc())
+    """List donations with optional filters. Includes delivery recipient and feedback when present."""
+    stmt = (
+        select(Donation)
+        .options(
+            selectinload(Donation.tasks).selectinload(Task.delivery_recipient),
+            selectinload(Donation.tasks).selectinload(Task.feedback),
+        )
+        .order_by(Donation.pickup_by.asc())
+    )
     result = await db.execute(stmt)
     donations = list(result.scalars().all())
 
@@ -70,7 +118,7 @@ async def list_donations(
             if ql in f"{d.category} {d.pickup_location.get('label','')} {d.pickup_location.get('address','')} {d.status}".lower()
         ]
 
-    return [_donation_to_response(d) for d in donations]
+    return [_donation_to_response(d, *_get_delivery_and_feedback(d)) for d in donations]
 
 
 @router.get("/{donation_id}")
@@ -78,12 +126,20 @@ async def get_donation(
     donation_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Get a single donation by ID."""
-    result = await db.execute(select(Donation).where(Donation.id == donation_id))
+    """Get a single donation by ID. Includes delivery recipient and feedback when present."""
+    stmt = (
+        select(Donation)
+        .where(Donation.id == donation_id)
+        .options(
+            selectinload(Donation.tasks).selectinload(Task.delivery_recipient),
+            selectinload(Donation.tasks).selectinload(Task.feedback),
+        )
+    )
+    result = await db.execute(stmt)
     d = result.scalar_one_or_none()
     if not d:
         return None
-    return _donation_to_response(d)
+    return _donation_to_response(d, *_get_delivery_and_feedback(d))
 
 
 @router.post("", response_model=dict)

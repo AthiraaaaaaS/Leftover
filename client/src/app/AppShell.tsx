@@ -8,7 +8,6 @@ import {
   Bell,
   User,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCurrentUserSync } from "@/lib/authClient";
 
@@ -54,38 +53,41 @@ export default function AppShell() {
 
   return (
     <div className="min-h-dvh">
-      <div className="mx-auto max-w-md px-4 pb-24 pt-4">
+      <div className="mx-auto max-w-md px-4 pb-28 pt-4">
         <Outlet />
       </div>
 
-      <div className="fixed inset-x-0 bottom-0">
-        <div className="mx-auto max-w-md px-4 pb-4">
-          <div className="rounded-2xl border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 p-2 shadow-lg shadow-black/30">
-            <div className="grid grid-cols-5 gap-1">
-              {nav.map((item) => {
-                const active = loc.pathname.startsWith(item.to);
-                const Icon = item.icon;
-                return (
-                  <Button
-                    key={item.to}
-                    variant={active ? "secondary" : "ghost"}
-                    className={cn(
-                      "h-12 flex flex-col gap-1",
-                      active && "border"
-                    )}
-                    onClick={() => navigate(item.to)}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span className="text-[11px] leading-none">
-                      {item.label}
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
+      {/* Polished bottom nav: white bar, active pill, subtle shadow */}
+      <nav className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl border-t border-stone-200/80 bg-white/95 shadow-[0_-8px_32px_rgba(0,0,0,0.08)] backdrop-blur-md">
+        <div className="flex items-center justify-around px-3 py-3">
+          {nav.map((item) => {
+            const active = loc.pathname.startsWith(item.to);
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.to}
+                onClick={() => navigate(item.to)}
+                className={cn(
+                  "relative flex flex-col items-center gap-1 rounded-2xl px-5 py-2.5 transition-all duration-200",
+                  active
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200",
+                    active && "bg-primary/10"
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5", active && "stroke-[2.5]")} />
+                </div>
+                <span className="text-[11px] font-medium">{item.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </nav>
     </div>
   );
 }

@@ -79,11 +79,13 @@ export const api = {
       password: string;
       fullName: string;
       phone: string;
+      email?: string;
       organization?: string;
       aadhaarLast4?: string;
       aadhaarConsent: boolean;
       idFrontFile?: File;
       idBackFile?: File;
+      foodSafetyCertFile?: File;
     }) {
       const idFrontImage = input.idFrontFile
         ? await fileToDataUrl(input.idFrontFile)
@@ -91,8 +93,11 @@ export const api = {
       const idBackImage = input.idBackFile
         ? await fileToDataUrl(input.idBackFile)
         : undefined;
+      const foodSafetyCertImage = input.foodSafetyCertFile
+        ? await fileToDataUrl(input.foodSafetyCertFile)
+        : undefined;
 
-      const res = await fetchApi<{ token: string; user: unknown }>(
+      const res = await fetchApi<{ token?: string; user: unknown; pending: boolean }>(
         "/auth/register/donor",
         {
           method: "POST",
@@ -101,15 +106,20 @@ export const api = {
             password: input.password,
             fullName: input.fullName,
             phone: input.phone,
+            email: input.email || undefined,
             organization: input.organization || undefined,
             aadhaarLast4: input.aadhaarLast4 || undefined,
             aadhaarConsent: input.aadhaarConsent,
             idFrontImage,
             idBackImage,
+            foodSafetyCertImage,
           }),
         }
       );
-      setSession(res.token, res.user);
+      if (res.pending) {
+        return { user: res.user, pending: true as const };
+      }
+      if (res.token) setSession(res.token, res.user);
       return res.user;
     },
 
@@ -118,10 +128,19 @@ export const api = {
       password: string;
       fullName: string;
       phone: string;
+      email?: string;
       city?: string;
       hasVehicle?: boolean;
+      aadhaarLast4?: string;
+      aadhaarConsent: boolean;
+      volunteerIdType: string;
+      volunteerIdProofFile?: File;
     }) {
-      const res = await fetchApi<{ token: string; user: unknown }>(
+      const volunteerIdProofImage = input.volunteerIdProofFile
+        ? await fileToDataUrl(input.volunteerIdProofFile)
+        : undefined;
+
+      const res = await fetchApi<{ token?: string; user: unknown; pending: boolean }>(
         "/auth/register/volunteer",
         {
           method: "POST",
@@ -130,25 +149,41 @@ export const api = {
             password: input.password,
             fullName: input.fullName,
             phone: input.phone,
+            email: input.email || undefined,
             city: input.city || undefined,
             hasVehicle: !!input.hasVehicle,
+            aadhaarLast4: input.aadhaarLast4 || undefined,
+            aadhaarConsent: input.aadhaarConsent,
+            volunteerIdType: input.volunteerIdType,
+            volunteerIdProofImage,
           }),
         }
       );
-      setSession(res.token, res.user);
+      if (res.pending) {
+        return { user: res.user, pending: true as const };
+      }
+      if (res.token) setSession(res.token, res.user);
       return res.user;
     },
 
     async login(input: { username: string; password: string }) {
-      const res = await fetchApi<{ token: string; user: unknown }>(
-        "/auth/login",
-        {
-          method: "POST",
-          body: JSON.stringify(input),
+      try {
+        const res = await fetchApi<{ token: string; user: unknown }>(
+          "/auth/login",
+          {
+            method: "POST",
+            body: JSON.stringify(input),
+          }
+        );
+        setSession(res.token, res.user);
+        return { token: res.token, user: res.user };
+      } catch (e: unknown) {
+        const err = e as { message?: string };
+        if (err?.message === "pending" || err?.message === "rejected") {
+          throw new Error(err.message);
         }
-      );
-      setSession(res.token, res.user);
-      return { token: res.token, user: res.user };
+        throw e;
+      }
     },
 
     async me() {
@@ -200,9 +235,9 @@ export const api = {
       {
         method: "POST",
         body: JSON.stringify({
-          id: volunteer.id,
-          name: volunteer.name,
-          phoneMasked: volunteer.phoneMasked,
+          volunteerId: volunteer.id,
+          volunteerName: volunteer.name,
+          volunteerPhoneMasked: volunteer.phoneMasked,
         }),
       }
     );
@@ -222,6 +257,17 @@ export const api = {
     });
   },
 
+  /** Mark task as delivered and submit end-user details. Sends feedback link to recipient. */
+  async deliverTask(
+    taskId: string,
+    endUser: { name: string; age?: number; address: string; email?: string; phone?: string }
+  ) {
+    return fetchApi<unknown>(`/tasks/${taskId}/deliver`, {
+      method: "POST",
+      body: JSON.stringify({ endUser }),
+    });
+  },
+
   async saveChecklist(taskId: string, patch: Record<string, unknown>) {
     return fetchApi<unknown>(`/tasks/${taskId}/checklist`, {
       method: "PATCH",
@@ -231,6 +277,21 @@ export const api = {
 
   async resetDemo() {
     await fetchApi("/demo/reset", { method: "POST" });
+  },
+
+  /** Public feedback by token (no auth). */
+  feedback: {
+    async getByToken(token: string) {
+      return fetchApi<{ donorName: string; volunteerName: string; alreadySubmitted: boolean }>(
+        `/feedback/by-token/${encodeURIComponent(token)}`
+      );
+    },
+    async submit(token: string, body: { rating: number; comment?: string }) {
+      return fetchApi<{ ok: boolean; message: string }>(`/feedback/by-token/${encodeURIComponent(token)}`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
   },
 
   /** Google Maps API - Geocoding & Places (requires backend GOOGLE_MAPS_API_KEY) */

@@ -35,6 +35,22 @@ class DonationCreate(BaseModel):
     dietaryTags: Optional[list[str]] = Field(None, alias="dietaryTags")
 
 
+class DeliveryRecipientResponse(BaseModel):
+    """End user who received the food (for admin/donation details)."""
+    name: str
+    age: Optional[int] = None
+    address: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class FeedbackResponse(BaseModel):
+    """End-user feedback for a delivery."""
+    rating: int
+    comment: Optional[str] = None
+    submittedAt: str
+
+
 class DonationResponse(BaseModel):
     id: str
     donorName: str
@@ -49,3 +65,5 @@ class DonationResponse(BaseModel):
     notes: Optional[str] = None
     dietaryTags: Optional[list[str]] = None
     assignedVolunteer: Optional[AssignedVolunteer] = None
+    deliveryRecipient: Optional[DeliveryRecipientResponse] = None
+    feedback: Optional[FeedbackResponse] = None
